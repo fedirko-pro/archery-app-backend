@@ -66,7 +66,7 @@ export class UserService {
   async changePassword(
     id: string,
     passwordData: ChangePasswordDto,
-  ): Promise<void> {
+  ): Promise<{ message: string }> {
     const user = await this.findById(id);
     if (!user) {
       throw new NotFoundException('User not found');
@@ -82,6 +82,7 @@ export class UserService {
       passwordData.currentPassword,
       user.password,
     );
+
     if (!isCurrentPasswordValid) {
       throw new UnauthorizedException('Current password is incorrect');
     }
@@ -114,6 +115,8 @@ export class UserService {
     user.updatedAt = new Date();
 
     await this.entityManager.persistAndFlush(user);
+
+    return { message: 'Password changed successfully' };
   }
 
   async setResetPasswordToken(

@@ -12,6 +12,7 @@ import {
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -38,6 +39,15 @@ export class UserController {
     return this.userService.update(req.user.sub, updateUserDto);
   }
 
+  @Patch('change-password')
+  @UseGuards(JwtAuthGuard)
+  changePassword(
+    @Request() req: any,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.userService.changePassword(req.user.sub, changePasswordDto);
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.userService.remove(id);
@@ -53,7 +63,10 @@ export class UserController {
   @Patch('admin/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRoles.Admin)
-  adminUpdateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  adminUpdateUser(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
     return this.userService.adminUpdateUser(id, updateUserDto);
   }
 }

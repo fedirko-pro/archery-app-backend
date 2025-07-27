@@ -148,7 +148,6 @@ export class AuthService {
       );
     }
 
-    // Set password for OAuth user
     await this.userService.setPasswordForOAuthUser(
       userId,
       passwordData.password,

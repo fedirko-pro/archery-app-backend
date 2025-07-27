@@ -74,18 +74,9 @@ export class AuthController {
     @Request() req: ExpressRequest,
     @Res() res: Response,
   ) {
-    console.log('Google OAuth callback - starting');
-    console.log('Google OAuth callback - req.user:', req.user);
-    
     const { jwt } = req.user as any;
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-    
-    console.log('Google OAuth callback - jwt:', jwt ? 'present' : 'missing');
-    console.log('Google OAuth callback - frontendUrl:', frontendUrl);
-    
     const redirectUrl = `${frontendUrl}/auth/google/callback?token=${jwt}`;
-    console.log('Google OAuth callback - redirecting to:', redirectUrl);
-
     res.redirect(redirectUrl);
   }
 
@@ -94,13 +85,13 @@ export class AuthController {
     const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
     const callbackUrl = this.configService.get<string>('GOOGLE_CALLBACK_URL');
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-    
+
     return {
       message: 'Google OAuth Configuration Test',
       clientId: clientId ? 'Configured' : 'Missing',
       callbackUrl,
       frontendUrl,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 

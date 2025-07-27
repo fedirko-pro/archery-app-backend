@@ -5,11 +5,13 @@ A NestJS-based backend application for managing archery tournaments, users, and 
 ## 🚀 Features
 
 - **Authentication**: JWT-based authentication with Google OAuth support
-- **User Management**: User registration, login, password reset functionality
-- **Tournament Management**: Create and manage archery tournaments
+- **User Management**: User registration, login, password reset functionality, password change
+- **Tournament Management**: Create and manage archery tournaments with multiple applications support
+- **Application System**: Tournament applications with deadline management and category-based restrictions
 - **Email Integration**: Password reset and notification emails
 - **Database**: PostgreSQL with MikroORM for type-safe database operations
 - **API**: RESTful API with comprehensive endpoints
+- **Code Quality**: Pre-commit hooks with ESLint and Prettier
 
 ## 📋 Prerequisites
 
@@ -322,6 +324,21 @@ If you encounter any issues:
 2. Review the error logs
 3. Ensure all prerequisites are installed
 4. Verify your environment variables are correctly set
+
+## 🔧 Code Quality
+
+### Pre-commit Hooks
+The project uses Husky and lint-staged to ensure code quality:
+
+- **ESLint** - Code linting and error detection
+- **Prettier** - Code formatting
+- **TypeScript** - Type checking
+- **Automatic formatting** - Code is automatically formatted on commit
+
+### Available Scripts
+- `npm run lint` - Run ESLint with auto-fix
+- `npm run format` - Format code with Prettier
+- `npm run build` - Type checking and build
 
 ## 🔗 Related Documentation
 

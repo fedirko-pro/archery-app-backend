@@ -68,12 +68,12 @@ Before running this application, make sure you have the following installed:
 
 1. **Start the PostgreSQL database**
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 2. **Verify the database is running**
    ```bash
-   docker-compose ps
+   docker compose ps
    ```
 
 ### Option 2: Local PostgreSQL

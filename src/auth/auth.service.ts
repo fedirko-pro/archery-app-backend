@@ -11,7 +11,7 @@ import { UserLoginDto } from './dto/user-login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 
 @Injectable()

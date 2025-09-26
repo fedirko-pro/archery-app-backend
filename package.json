@@ -39,7 +39,7 @@
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.0.0",
     "@types/nodemailer": "^6.4.17",
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^2.4.3",
     "class-validator": "^0.14.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.0.1",
@@ -57,7 +57,7 @@
     "@nestjs/cli": "^10.4.7",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
-    "@types/bcrypt": "^5.0.2",
+    "@types/bcryptjs": "^2.4.6",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.2",
     "@types/node": "^20.19.4",
@@ -103,5 +103,5 @@
     "node": ">=22.12.0",
     "pnpm": ">=9.0.0"
   },
-  "packageManager": "pnpm@9"
+  "packageManager": "pnpm@10.16.1"
 }

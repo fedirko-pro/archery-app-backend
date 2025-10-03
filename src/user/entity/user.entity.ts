@@ -40,6 +40,9 @@ export class User {
   website?: string;
 
   @Property({ nullable: true })
+  language?: string;
+
+  @Property({ nullable: true })
   resetPasswordToken?: string;
 
   @Property({ nullable: true })
@@ -51,10 +54,10 @@ export class User {
   @Property({ type: 'array', nullable: true })
   categories?: string[];
 
-  @OneToMany(() => Tournament, tournament => tournament.createdBy)
+  @OneToMany(() => Tournament, (tournament) => tournament.createdBy)
   tournaments = [];
 
-  @OneToMany(() => PatrolMember, member => member.user)
+  @OneToMany(() => PatrolMember, (member) => member.user)
   patrolMemberships = [];
 
   @Property({ onCreate: () => new Date() })

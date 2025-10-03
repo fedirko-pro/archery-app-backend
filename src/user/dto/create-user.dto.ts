@@ -32,6 +32,10 @@ export class CreateUserDto {
   @IsOptional()
   role?: string;
 
+  @IsString()
+  @IsOptional()
+  language?: string;
+
   @IsOptional()
   createdAt?: Date;
 

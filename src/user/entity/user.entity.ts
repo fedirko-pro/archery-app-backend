@@ -15,7 +15,7 @@ export class User {
   @Property()
   email: string;
 
-  @Property({ nullable: true })
+  @Property({ nullable: true, hidden: true })
   password?: string;
 
   @Property()
@@ -42,10 +42,10 @@ export class User {
   @Property({ nullable: true })
   language?: string;
 
-  @Property({ nullable: true })
+  @Property({ nullable: true, hidden: true })
   resetPasswordToken?: string;
 
-  @Property({ nullable: true })
+  @Property({ nullable: true, hidden: true })
   resetPasswordExpires?: Date;
 
   @Property({ nullable: true })

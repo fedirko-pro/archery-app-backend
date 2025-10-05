@@ -1,6 +1,6 @@
 import { IsOptional, IsString, IsUrl } from 'class-validator';
 
-export class UpdateUserDto {
+export class AdminUpdateUserDto {
   @IsString()
   @IsOptional()
   firstName?: string;
@@ -27,11 +27,9 @@ export class UpdateUserDto {
 
   @IsString()
   @IsOptional()
-  language?: string;
-}
+  role?: string;
 
-export class AdminUpdateUserDto extends UpdateUserDto {
   @IsString()
   @IsOptional()
-  role?: string;
+  language?: string;
 }

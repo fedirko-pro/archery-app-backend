@@ -9,25 +9,6 @@ This document summarizes a security and quality audit of the NestJS backend. It 
 
 ## Critical Risks (fix ASAP)
 
-### 1) Sensitive user fields exposed in API responses
-`User` entity returns `password`, `resetPasswordToken`, `resetPasswordExpires` in many endpoints.
-
-Recommended:
-- Hide sensitive fields via MikroORM or `class-transformer`.
-- Option A (MikroORM):
-
-```ts
-// user.entity.ts
-@Property({ hidden: true, nullable: true })
-password?: string;
-@Property({ hidden: true, nullable: true })
-resetPasswordToken?: string;
-@Property({ hidden: true, nullable: true })
-resetPasswordExpires?: Date;
-```
-
-- Option B (Nest serialization): enable `ClassSerializerInterceptor` globally and use `@Exclude()` on fields.
-
 ### 2) Privilege escalation via profile update
 `UpdateUserDto` includes `role` and `updateProfile` assigns request body directly, allowing users to grant themselves admin.
 

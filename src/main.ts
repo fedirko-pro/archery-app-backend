@@ -24,7 +24,11 @@ async function bootstrap() {
     }),
   );
 
-  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+  app.useGlobalInterceptors(
+    new ClassSerializerInterceptor(app.get(Reflector), {
+      enableCircularCheck: true,
+    }),
+  );
 
   const port = configService.get<number>('PORT') as number;
   await app.listen(port);

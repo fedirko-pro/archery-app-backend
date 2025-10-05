@@ -31,7 +31,41 @@ export class UserController {
   @Get('profile')
   @UseGuards(JwtAuthGuard)
   getProfile(@Request() req: any) {
-    return this.userService.findById(req.user.sub);
+    return this.userService.findById(req.user.sub).then((user) => {
+      if (!user) return null;
+      const {
+        id,
+        email,
+        role,
+        firstName,
+        lastName,
+        picture,
+        bio,
+        location,
+        website,
+        language,
+        federationNumber,
+        categories,
+        createdAt,
+        updatedAt,
+      } = user as any;
+      return {
+        id,
+        email,
+        role,
+        firstName,
+        lastName,
+        picture,
+        bio,
+        location,
+        website,
+        language,
+        federationNumber,
+        categories,
+        createdAt,
+        updatedAt,
+      };
+    });
   }
 
   @Patch('profile')

@@ -29,3 +29,9 @@ export class UpdateUserDto {
   @IsOptional()
   language?: string;
 }
+
+export class AdminUpdateUserDto extends UpdateUserDto {
+  @IsString()
+  @IsOptional()
+  role?: string;
+}

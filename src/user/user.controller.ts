@@ -8,10 +8,11 @@ import {
   Delete,
   UseGuards,
   Request,
+  ForbiddenException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserDto, AdminUpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -50,7 +51,11 @@ export class UserController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  @UseGuards(JwtAuthGuard)
+  remove(@Param('id') id: string, @Request() req: any) {
+    if (req.user.sub !== id && req.user.role !== UserRoles.Admin) {
+      throw new ForbiddenException();
+    }
     return this.userService.remove(id);
   }
 

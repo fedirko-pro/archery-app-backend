@@ -9,58 +9,6 @@ This document summarizes a security and quality audit of the NestJS backend. It 
 
 ## Critical Risks (fix ASAP)
 
-### 2) Privilege escalation via profile update
-`UpdateUserDto` includes `role` and `updateProfile` assigns request body directly, allowing users to grant themselves admin.
-
-Recommended:
-- Remove `role` from `UpdateUserDto`.
-- Ignore `role` changes in normal profile updates; separate admin-only DTO for role updates.
-
-```ts
-// update-user.dto.ts (remove role)
-export class UpdateUserDto { /* firstName, lastName, bio, location, website, picture */ }
-
-// user.service.ts (server-side guard)
-const { role, ...safe } = updateData as any;
-Object.assign(user, safe);
-```
-
-### 3) Unguarded destructive endpoint
-`DELETE /users/:id` is public.
-
-Recommended:
-- Require `JwtAuthGuard`. Allow self-delete or admin-only.
-
-```ts
-@UseGuards(JwtAuthGuard)
-@Delete(':id')
-remove(@Param('id') id: string, @Request() req: any) {
-  if (req.user.sub !== id && req.user.role !== 'admin') throw new ForbiddenException();
-  return this.userService.remove(id);
-}
-```
-
-### 4) Missing global request validation and serialization
-No global `ValidationPipe`; several controllers accept `any`. Hidden fields also require global serialization.
-
-Recommended:
-- Add global validation with whitelist and transform.
-- Also enable global serialization so hidden/excluded fields are honored.
-
-```ts
-// main.ts
-import { ValidationPipe, ClassSerializerInterceptor } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-
-app.useGlobalPipes(new ValidationPipe({
-  whitelist: true,
-  forbidNonWhitelisted: true,
-  transform: true,
-}));
-
-app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
-```
-
 ### 5) OAuth token exposed in URL query
 Google callback redirects with `?token=...`, leaking tokens via logs/history.
 

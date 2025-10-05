@@ -8,8 +8,7 @@ import {
 import { EntityManager } from '@mikro-orm/core';
 import { User } from './entity/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
+import { UpdateUserDto, AdminUpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Roles } from './types';
 import bcrypt from 'bcryptjs';

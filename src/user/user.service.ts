@@ -9,6 +9,7 @@ import { EntityManager } from '@mikro-orm/core';
 import { User } from './entity/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Roles } from './types';
 import bcrypt from 'bcryptjs';
@@ -56,7 +57,9 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
 
-    Object.assign(user, updateData);
+    const safeUpdate = { ...(updateData as any) };
+    delete (safeUpdate as any).role;
+    Object.assign(user, safeUpdate);
     user.updatedAt = new Date();
 
     await this.entityManager.persistAndFlush(user);
@@ -199,7 +202,10 @@ export class UserService {
     return this.entityManager.find(User, {});
   }
 
-  async adminUpdateUser(id: string, updateData: UpdateUserDto): Promise<User> {
+  async adminUpdateUser(
+    id: string,
+    updateData: AdminUpdateUserDto,
+  ): Promise<User> {
     const user = await this.findById(id);
     if (!user) {
       throw new NotFoundException('User not found');

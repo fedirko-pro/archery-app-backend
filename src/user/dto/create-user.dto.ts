@@ -34,7 +34,7 @@ export class CreateUserDto {
 
   @IsString()
   @IsOptional()
-  language?: string;
+  appLanguage?: string;
 
   @IsOptional()
   createdAt?: Date;

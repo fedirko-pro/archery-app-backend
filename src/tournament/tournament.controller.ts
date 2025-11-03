@@ -1,4 +1,14 @@
-import { Controller, Post, Body, Get, Put, Delete, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Put,
+  Delete,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { TournamentService } from './tournament.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -18,7 +28,21 @@ export class TournamentController {
 
   @Get()
   async findAll() {
-    return this.tournamentService.findAll();
+    const tournaments = await this.tournamentService.findAll();
+    // Serialize to plain JSON to avoid class-transformer issues with Patrol class
+    return tournaments.map((t) => ({
+      ...t,
+      createdBy: t.createdBy
+        ? {
+            id: t.createdBy.id,
+            email: t.createdBy.email,
+            firstName: t.createdBy.firstName,
+            lastName: t.createdBy.lastName,
+            picture: t.createdBy.picture,
+            role: t.createdBy.role,
+          }
+        : null,
+    }));
   }
 
   @Get(':id')
@@ -39,4 +63,4 @@ export class TournamentController {
   async remove(@Param('id') id: string) {
     return this.tournamentService.remove(id);
   }
-} 
+}

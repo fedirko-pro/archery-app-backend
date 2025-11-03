@@ -52,7 +52,7 @@ export class TournamentService {
       Tournament,
       {},
       {
-        populate: ['createdBy', 'patrols'],
+        populate: ['createdBy'],
       },
     );
   }
@@ -62,7 +62,7 @@ export class TournamentService {
       Tournament,
       { id },
       {
-        populate: ['createdBy', 'patrols'],
+        populate: ['createdBy'],
       },
     );
 

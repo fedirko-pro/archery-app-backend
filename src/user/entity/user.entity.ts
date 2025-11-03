@@ -37,10 +37,7 @@ export class User {
   location?: string;
 
   @Property({ nullable: true })
-  website?: string;
-
-  @Property({ nullable: true })
-  language?: string;
+  appLanguage?: string;
 
   @Property({ nullable: true, hidden: true })
   resetPasswordToken?: string;

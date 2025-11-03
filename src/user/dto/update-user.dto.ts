@@ -1,6 +1,9 @@
-import { IsOptional, IsString, IsUrl } from 'class-validator';
+import { IsOptional, IsString, IsUrl, IsArray, IsEmail } from 'class-validator';
 
 export class UpdateUserDto {
+  @IsEmail()
+  @IsOptional()
+  email?: string;
   @IsString()
   @IsOptional()
   firstName?: string;
@@ -19,15 +22,20 @@ export class UpdateUserDto {
 
   @IsUrl()
   @IsOptional()
-  website?: string;
-
-  @IsUrl()
-  @IsOptional()
   picture?: string;
 
   @IsString()
   @IsOptional()
-  language?: string;
+  appLanguage?: string;
+
+  @IsString()
+  @IsOptional()
+  federationNumber?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  categories?: string[];
 }
 
 export class AdminUpdateUserDto extends UpdateUserDto {

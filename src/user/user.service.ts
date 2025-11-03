@@ -50,14 +50,28 @@ export class UserService {
     return this.entityManager.findOne(User, { id });
   }
 
-  async update(id: string, updateData: UpdateUserDto): Promise<User> {
+  async update(
+    id: string,
+    updateData: UpdateUserDto,
+    isAdmin: boolean = false,
+  ): Promise<User> {
     const user = await this.findById(id);
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    const safeUpdate = { ...(updateData as any) };
+    const safeUpdate: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(updateData as any)) {
+      if (value !== undefined) {
+        safeUpdate[key] = value;
+      }
+    }
+
     delete (safeUpdate as any).role;
+    if (!isAdmin) {
+      delete (safeUpdate as any).email;
+    }
+
     Object.assign(user, safeUpdate);
     user.updatedAt = new Date();
 

@@ -71,7 +71,8 @@ export class UserController {
   @Patch('profile')
   @UseGuards(JwtAuthGuard)
   updateProfile(@Request() req: any, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(req.user.sub, updateUserDto);
+    const isAdmin = req.user.role === UserRoles.Admin;
+    return this.userService.update(req.user.sub, updateUserDto, isAdmin);
   }
 
   @Patch('change-password')

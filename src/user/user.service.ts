@@ -12,10 +12,14 @@ import { UpdateUserDto, AdminUpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Roles } from './types';
 import bcrypt from 'bcryptjs';
+import { UploadService } from '../upload/upload.service';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly entityManager: EntityManager) {}
+  constructor(
+    private readonly entityManager: EntityManager,
+    private readonly uploadService: UploadService,
+  ) {}
 
   async create(userData: CreateUserDto): Promise<User> {
     const existing = await this.findByEmail(userData.email);
@@ -42,7 +46,21 @@ export class UserService {
     return user;
   }
 
-  async findByEmail(email: string): Promise<User | null> {
+  async findByEmail(
+    email: string,
+    includePassword = false,
+  ): Promise<User | null> {
+    if (includePassword) {
+      // Use getConnection().execute() with proper parameter binding for PostgreSQL
+      const connection = this.entityManager.getConnection();
+      const result = await connection.execute(
+        'SELECT * FROM "user" WHERE email = ?',
+        [email],
+        'get',
+      );
+      if (!result) return null;
+      return this.entityManager.map(User, result);
+    }
     return this.entityManager.findOne(User, { email });
   }
 
@@ -236,6 +254,9 @@ export class UserService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
+    // Clean up user files (avatar) before deleting the user
+    await this.uploadService.cleanupUserFiles(id);
 
     await this.entityManager.removeAndFlush(user);
   }

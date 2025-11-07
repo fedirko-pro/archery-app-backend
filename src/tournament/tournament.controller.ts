@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { wrap } from '@mikro-orm/core';
 import { TournamentService } from './tournament.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -47,7 +48,10 @@ export class TournamentController {
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
-    return this.tournamentService.findById(id);
+    const tournament = await this.tournamentService.findById(id);
+    // Serialize to plain JSON to avoid class-transformer issues
+    const json: any = wrap(tournament).toJSON();
+    return json;
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

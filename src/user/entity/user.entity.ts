@@ -1,8 +1,6 @@
-import { Entity, PrimaryKey, Property, OneToMany } from '@mikro-orm/core';
+import { Entity, PrimaryKey, Property } from '@mikro-orm/core';
 import { v4 as uuid } from 'uuid';
 import { AuthProvider, AuthProviders } from '../types';
-import { Tournament } from '../../tournament/tournament.entity';
-import { PatrolMember } from '../../tournament/patrol-member.entity';
 
 @Entity()
 export class User {
@@ -51,14 +49,14 @@ export class User {
   @Property({ type: 'array', nullable: true })
   categories?: string[];
 
-  @OneToMany(() => Tournament, (tournament) => tournament.createdBy)
-  tournaments = [];
+  // @OneToMany(() => Tournament, (tournament) => tournament.createdBy)
+  // tournaments = [];
 
-  @OneToMany(() => PatrolMember, (member) => member.user)
-  patrolMemberships = [];
+  // @OneToMany(() => PatrolMember, (member) => member.user)
+  // patrolMemberships = [];
 
   @Property({ onCreate: () => new Date() })
-  createdAt: Date = new Date();
+  createdAt?: Date = new Date();
 
   @Property({ onUpdate: () => new Date(), nullable: true })
   updatedAt?: Date;

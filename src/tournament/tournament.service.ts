@@ -6,10 +6,14 @@ import {
 import { EntityManager } from '@mikro-orm/core';
 import { Tournament } from './tournament.entity';
 import { subDays, parseISO } from 'date-fns';
+import { UploadService } from '../upload/upload.service';
 
 @Injectable()
 export class TournamentService {
-  constructor(private readonly em: EntityManager) {}
+  constructor(
+    private readonly em: EntityManager,
+    private readonly uploadService: UploadService,
+  ) {}
 
   async create(data: Partial<Tournament>): Promise<Tournament> {
     if (!data.title || !data.startDate || !data.createdBy) {
@@ -110,6 +114,9 @@ export class TournamentService {
         `Cannot delete tournament with ${applicationsCount} applications. Please delete applications first.`,
       );
     }
+
+    // Clean up all tournament files (banner and attachments) before deleting
+    await this.uploadService.cleanupTournamentFiles(id);
 
     await this.em.removeAndFlush(tournament);
   }

@@ -31,19 +31,6 @@ export class Tournament {
   @Property({ default: true })
   allowMultipleApplications: boolean = true;
 
-  @Property({ nullable: true })
-  banner?: string;
-
-  @Property({ type: 'json', nullable: true })
-  attachments?: Array<{
-    id: string;
-    url: string;
-    filename: string;
-    size: number;
-    mimeType: string;
-    uploadedAt: Date;
-  }>;
-
   @ManyToOne(() => User)
   createdBy: User;
 
@@ -51,7 +38,7 @@ export class Tournament {
   // patrols = [];
 
   @Property({ onCreate: () => new Date() })
-  createdAt?: Date = new Date();
+  createdAt: Date = new Date();
 
   @Property({ onUpdate: () => new Date(), nullable: true })
   updatedAt?: Date;

@@ -10,11 +10,24 @@ import { PatrolService } from './patrol.service';
 import { PatrolController } from './patrol.controller';
 import { TournamentApplicationService } from './tournament-application.service';
 import { TournamentApplicationController } from './tournament-application.controller';
+import { UploadModule } from '../upload/upload.module';
 
 @Module({
-  imports: [MikroOrmModule.forFeature([Tournament, Patrol, PatrolMember, TournamentApplication])],
+  imports: [
+    MikroOrmModule.forFeature([
+      Tournament,
+      Patrol,
+      PatrolMember,
+      TournamentApplication,
+    ]),
+    UploadModule,
+  ],
   providers: [TournamentService, PatrolService, TournamentApplicationService],
-  controllers: [TournamentController, PatrolController, TournamentApplicationController],
+  controllers: [
+    TournamentController,
+    PatrolController,
+    TournamentApplicationController,
+  ],
   exports: [MikroOrmModule],
 })
-export class TournamentModule {} 
+export class TournamentModule {}

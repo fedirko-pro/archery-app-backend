@@ -20,7 +20,12 @@ export class UpdateUserDto {
   @IsOptional()
   location?: string;
 
-  @IsUrl()
+  // Allow localhost URLs for development and any valid URL format
+  @IsUrl({
+    require_tld: false,
+    require_protocol: false,
+    allow_protocol_relative_urls: true,
+  })
   @IsOptional()
   picture?: string;
 

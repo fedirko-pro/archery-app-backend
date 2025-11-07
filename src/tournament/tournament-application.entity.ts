@@ -7,7 +7,7 @@ export enum ApplicationStatus {
   PENDING = 'pending',
   APPROVED = 'approved',
   REJECTED = 'rejected',
-  WITHDRAWN = 'withdrawn'
+  WITHDRAWN = 'withdrawn',
 }
 
 @Entity()
@@ -40,8 +40,8 @@ export class TournamentApplication {
   rejectionReason?: string; // Причина відхилення
 
   @Property({ onCreate: () => new Date() })
-  createdAt: Date = new Date();
+  createdAt?: Date = new Date();
 
   @Property({ onUpdate: () => new Date(), nullable: true })
   updatedAt?: Date;
-} 
+}

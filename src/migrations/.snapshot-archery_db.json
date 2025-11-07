@@ -107,8 +107,8 @@
           "length": 255,
           "mappedType": "string"
         },
-        "website": {
-          "name": "website",
+        "app_language": {
+          "name": "app_language",
           "type": "varchar(255)",
           "unsigned": false,
           "autoincrement": false,
@@ -286,6 +286,25 @@
           "default": "true",
           "mappedType": "boolean"
         },
+        "banner": {
+          "name": "banner",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "attachments": {
+          "name": "attachments",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
+        },
         "created_by_id": {
           "name": "created_by_id",
           "type": "varchar(255)",
@@ -343,6 +362,7 @@
             "id"
           ],
           "referencedTableName": "public.user",
+          "createForeignKeyConstraint": true,
           "updateRule": "cascade"
         }
       },
@@ -488,6 +508,7 @@
             "id"
           ],
           "referencedTableName": "public.tournament",
+          "createForeignKeyConstraint": true,
           "updateRule": "cascade"
         },
         "tournament_application_applicant_id_foreign": {
@@ -500,6 +521,7 @@
             "id"
           ],
           "referencedTableName": "public.user",
+          "createForeignKeyConstraint": true,
           "updateRule": "cascade"
         }
       },
@@ -604,6 +626,7 @@
             "id"
           ],
           "referencedTableName": "public.tournament",
+          "createForeignKeyConstraint": true,
           "updateRule": "cascade"
         },
         "patrol_leader_id_foreign": {
@@ -616,6 +639,7 @@
             "id"
           ],
           "referencedTableName": "public.user",
+          "createForeignKeyConstraint": true,
           "updateRule": "cascade"
         }
       },
@@ -710,6 +734,7 @@
             "id"
           ],
           "referencedTableName": "public.patrol",
+          "createForeignKeyConstraint": true,
           "updateRule": "cascade"
         },
         "patrol_member_user_id_foreign": {
@@ -722,6 +747,7 @@
             "id"
           ],
           "referencedTableName": "public.user",
+          "createForeignKeyConstraint": true,
           "updateRule": "cascade"
         }
       },

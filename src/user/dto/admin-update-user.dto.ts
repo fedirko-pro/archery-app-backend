@@ -1,4 +1,11 @@
-import { IsOptional, IsString, IsUrl } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsUrl,
+  IsEmail,
+  IsIn,
+  IsArray,
+} from 'class-validator';
 
 export class AdminUpdateUserDto {
   @IsString()
@@ -8,6 +15,10 @@ export class AdminUpdateUserDto {
   @IsString()
   @IsOptional()
   lastName?: string;
+
+  @IsEmail()
+  @IsOptional()
+  email?: string;
 
   @IsString()
   @IsOptional()
@@ -19,17 +30,22 @@ export class AdminUpdateUserDto {
 
   @IsUrl()
   @IsOptional()
-  website?: string;
-
-  @IsUrl()
-  @IsOptional()
   picture?: string;
 
   @IsString()
   @IsOptional()
+  @IsIn(['user', 'admin'])
   role?: string;
 
   @IsString()
   @IsOptional()
-  language?: string;
+  appLanguage?: string;
+
+  @IsString()
+  @IsOptional()
+  federationNumber?: string;
+
+  @IsArray()
+  @IsOptional()
+  categories?: string[];
 }

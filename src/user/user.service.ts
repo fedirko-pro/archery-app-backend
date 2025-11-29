@@ -242,6 +242,14 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
 
+    // Check email uniqueness if email is being updated
+    if (updateData.email && updateData.email !== user.email) {
+      const existingUser = await this.findByEmail(updateData.email);
+      if (existingUser) {
+        throw new ConflictException('Email is already in use');
+      }
+    }
+
     Object.assign(user, updateData);
     user.updatedAt = new Date();
 

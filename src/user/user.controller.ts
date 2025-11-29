@@ -100,6 +100,13 @@ export class UserController {
     return this.userService.getAllUsers();
   }
 
+  @Get('admin/:userId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRoles.Admin)
+  async getUserById(@Param('userId') userId: string) {
+    return this.userService.findById(userId);
+  }
+
   @Patch('admin/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRoles.Admin)

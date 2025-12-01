@@ -1,4 +1,14 @@
-import { Controller, Post, Body, Get, Put, Delete, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Put,
+  Delete,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { TournamentApplicationService } from './tournament-application.service';
 import { ApplicationStatus } from './tournament-application.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -8,20 +18,26 @@ import { Roles as UserRoles } from '../user/types';
 
 @Controller('tournament-applications')
 export class TournamentApplicationController {
-  constructor(private readonly applicationService: TournamentApplicationService) {}
+  constructor(
+    private readonly applicationService: TournamentApplicationService,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  async create(@Body() data: {
-    tournamentId: string;
-    category?: string;
-    division?: string;
-    equipment?: string;
-    notes?: string;
-  }, @Request() req: any) {
+  async create(
+    @Body()
+    data: {
+      tournamentId: string;
+      category?: string;
+      division?: string;
+      equipment?: string;
+      notes?: string;
+    },
+    @Request() req: any,
+  ) {
     return this.applicationService.create({
       ...data,
-      applicantId: req.user.sub
+      applicantId: req.user.sub,
     });
   }
 
@@ -63,9 +79,15 @@ export class TournamentApplicationController {
   @Roles(UserRoles.Admin)
   async updateStatus(
     @Param('id') id: string,
-    @Body() data: { status: ApplicationStatus; rejectionReason?: string }
+    @Body() data: { status: ApplicationStatus; rejectionReason?: string },
+    @Request() req: any,
   ) {
-    return this.applicationService.updateStatus(id, data.status, data.rejectionReason);
+    return this.applicationService.updateStatus(
+      id,
+      data.status,
+      data.rejectionReason,
+      req.user.sub, // Pass admin user ID for audit trail
+    );
   }
 
   @Delete(':id')
@@ -80,4 +102,4 @@ export class TournamentApplicationController {
   async remove(@Param('id') id: string) {
     return this.applicationService.remove(id);
   }
-} 
+}

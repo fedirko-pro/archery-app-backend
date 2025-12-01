@@ -11,6 +11,7 @@ import { PatrolController } from './patrol.controller';
 import { TournamentApplicationService } from './tournament-application.service';
 import { TournamentApplicationController } from './tournament-application.controller';
 import { UploadModule } from '../upload/upload.module';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { UploadModule } from '../upload/upload.module';
       TournamentApplication,
     ]),
     UploadModule,
+    EmailModule,
   ],
   providers: [TournamentService, PatrolService, TournamentApplicationService],
   controllers: [

@@ -39,6 +39,12 @@ export class TournamentApplication {
   @Property({ nullable: true })
   rejectionReason?: string; // Причина відхилення
 
+  @ManyToOne(() => User, { nullable: true })
+  processedBy?: User; // Адміністратор, який обробив заявку
+
+  @Property({ nullable: true })
+  processedAt?: Date; // Час обробки заявки
+
   @Property({ onCreate: () => new Date() })
   createdAt?: Date = new Date();
 

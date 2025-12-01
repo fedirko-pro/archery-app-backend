@@ -11,10 +11,14 @@ import {
 } from './tournament-application.entity';
 import { Tournament } from './tournament.entity';
 import { User } from '../user/entity/user.entity';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class TournamentApplicationService {
-  constructor(private readonly em: EntityManager) {}
+  constructor(
+    private readonly em: EntityManager,
+    private readonly emailService: EmailService,
+  ) {}
 
   async create(data: {
     tournamentId: string;
@@ -132,16 +136,96 @@ export class TournamentApplicationService {
     id: string,
     status: ApplicationStatus,
     rejectionReason?: string,
+    adminUserId?: string,
   ): Promise<TournamentApplication> {
     const application = await this.findById(id);
 
-    application.status = status;
-    if (status === ApplicationStatus.REJECTED && rejectionReason) {
-      application.rejectionReason = rejectionReason;
+    // ✅ Status transition validation
+    // Prevent changing to the same status
+    if (application.status === status) {
+      throw new BadRequestException(
+        `Application is already ${status}. No change needed.`,
+      );
     }
+
+    // Prevent admins from changing withdrawn applications
+    // (Users withdrew themselves, respect their decision)
+    if (application.status === ApplicationStatus.WITHDRAWN) {
+      throw new BadRequestException(
+        `Cannot change status of a withdrawn application. The applicant withdrew this application themselves.`,
+      );
+    }
+
+    // Prevent admins from setting status to withdrawn
+    // (Only users can withdraw their own applications)
+    if (status === ApplicationStatus.WITHDRAWN) {
+      throw new BadRequestException(
+        `Cannot set status to withdrawn. Only applicants can withdraw their own applications.`,
+      );
+    }
+
+    // All other transitions are allowed:
+    // - PENDING → APPROVED/REJECTED
+    // - APPROVED → REJECTED (admin changed their mind)
+    // - REJECTED → APPROVED (admin made a mistake or circumstances changed)
+
+    // Update status
+    application.status = status;
+
+    // Handle rejection reason
+    if (status === ApplicationStatus.REJECTED) {
+      // Set rejection reason if provided
+      if (rejectionReason) {
+        application.rejectionReason = rejectionReason;
+      }
+    } else if (status === ApplicationStatus.APPROVED) {
+      // Clear rejection reason when approving (even if previously rejected)
+      application.rejectionReason = undefined;
+    }
+
+    // ✅ Audit trail - track who processed the application
+    if (
+      adminUserId &&
+      (status === ApplicationStatus.APPROVED ||
+        status === ApplicationStatus.REJECTED)
+    ) {
+      const admin = await this.em.findOne(User, { id: adminUserId });
+      if (admin) {
+        application.processedBy = admin;
+        application.processedAt = new Date();
+      }
+    }
+
     application.updatedAt = new Date();
 
     await this.em.persistAndFlush(application);
+
+    // ✅ Send email notification
+    try {
+      const applicantName = application.applicant.firstName || 'Archer';
+      const tournamentTitle = application.tournament.title;
+
+      if (status === ApplicationStatus.APPROVED) {
+        await this.emailService.sendApplicationStatusEmail(
+          application.applicant.email,
+          applicantName,
+          tournamentTitle,
+          'approved',
+        );
+      } else if (status === ApplicationStatus.REJECTED) {
+        await this.emailService.sendApplicationStatusEmail(
+          application.applicant.email,
+          applicantName,
+          tournamentTitle,
+          'rejected',
+          rejectionReason,
+        );
+      }
+    } catch (error) {
+      // Log error but don't fail the status update
+      console.error('Failed to send notification email:', error);
+    }
+
     return application;
   }
 

@@ -5,6 +5,9 @@ export const Roles = {
 
 export type Role = (typeof Roles)[keyof typeof Roles];
 
+// Alias for backward compatibility
+export const UserRoles = Roles;
+
 export const AuthProviders = {
   Local: 'local',
   Google: 'google',

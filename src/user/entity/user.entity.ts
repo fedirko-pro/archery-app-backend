@@ -1,6 +1,7 @@
-import { Entity, PrimaryKey, Property } from '@mikro-orm/core';
+import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
 import { v4 as uuid } from 'uuid';
 import { AuthProvider, AuthProviders } from '../types';
+import { Club } from '../../club/club.entity';
 
 @Entity()
 export class User {
@@ -44,10 +45,16 @@ export class User {
   resetPasswordExpires?: Date;
 
   @Property({ nullable: true })
-  federationNumber?: string;
+  federationNumber?: string; // Federation Number (e.g., FABP ID)
 
-  @Property({ type: 'array', nullable: true })
-  categories?: string[];
+  @Property({ nullable: true })
+  nationality?: string;
+
+  @Property({ nullable: true })
+  sex?: string; // 'm', 'f', 'other'
+
+  @ManyToOne(() => Club, { nullable: true })
+  club?: Club;
 
   // @OneToMany(() => Tournament, (tournament) => tournament.createdBy)
   // tournaments = [];

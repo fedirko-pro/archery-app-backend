@@ -8,6 +8,8 @@ import { TournamentService } from './tournament.service';
 import { TournamentController } from './tournament.controller';
 import { PatrolService } from './patrol.service';
 import { PatrolController } from './patrol.controller';
+import { PatrolGenerationService } from './patrol-generation.service';
+import { PatrolPdfService } from './patrol-pdf.service';
 import { TournamentApplicationService } from './tournament-application.service';
 import { TournamentApplicationController } from './tournament-application.controller';
 import { UploadModule } from '../upload/upload.module';
@@ -24,7 +26,13 @@ import { EmailModule } from '../email/email.module';
     UploadModule,
     EmailModule,
   ],
-  providers: [TournamentService, PatrolService, TournamentApplicationService],
+  providers: [
+    TournamentService,
+    PatrolService,
+    PatrolGenerationService,
+    PatrolPdfService,
+    TournamentApplicationService,
+  ],
   controllers: [
     TournamentController,
     PatrolController,

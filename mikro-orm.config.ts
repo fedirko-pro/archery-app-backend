@@ -16,6 +16,13 @@ const config: Options = {
     pathTs: './src/migrations',
     glob: '!(*.d).{js,ts}',
   },
+  seeder: {
+    path: './dist/seeders',
+    pathTs: './src/seeders',
+    defaultSeeder: 'DatabaseSeeder',
+    glob: '!(*.d).{js,ts}',
+    emit: 'ts',
+  },
 };
 
 export default config;

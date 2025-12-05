@@ -11,6 +11,8 @@ import {
 } from './tournament-application.entity';
 import { Tournament } from './tournament.entity';
 import { User } from '../user/entity/user.entity';
+import { Division } from '../division/division.entity';
+import { BowCategory } from '../bow-category/bow-category.entity';
 import { EmailService } from '../email/email.service';
 
 @Injectable()
@@ -23,9 +25,8 @@ export class TournamentApplicationService {
   async create(data: {
     tournamentId: string;
     applicantId: string;
-    category?: string;
-    division?: string;
-    equipment?: string;
+    divisionId?: string;
+    bowCategoryId?: string;
     notes?: string;
   }): Promise<TournamentApplication> {
     const tournament = await this.em.findOne(Tournament, {
@@ -52,25 +53,48 @@ export class TournamentApplicationService {
         );
       }
 
-      if (data.category) {
+      if (data.bowCategoryId) {
         const existingApplicationWithSameCategory = existingApplications.find(
-          (app) => app.category === data.category,
+          (app) => app.bowCategory?.id === data.bowCategoryId,
         );
 
         if (existingApplicationWithSameCategory) {
           throw new ConflictException(
-            `Application for category '${data.category}' already exists for this tournament`,
+            `Application for this bow category already exists for this tournament`,
           );
         }
+      }
+    }
+
+    // Load Division and BowCategory if provided
+    let division: Division | null = null;
+    let bowCategory: BowCategory | null = null;
+
+    if (data.divisionId) {
+      division = await this.em.findOne(Division, { id: data.divisionId });
+      if (!division) {
+        throw new NotFoundException(
+          `Division with ID ${data.divisionId} not found`,
+        );
+      }
+    }
+
+    if (data.bowCategoryId) {
+      bowCategory = await this.em.findOne(BowCategory, {
+        id: data.bowCategoryId,
+      });
+      if (!bowCategory) {
+        throw new NotFoundException(
+          `BowCategory with ID ${data.bowCategoryId} not found`,
+        );
       }
     }
 
     const application = this.em.create(TournamentApplication, {
       tournament,
       applicant,
-      category: data.category,
-      division: data.division,
-      equipment: data.equipment,
+      division: division || undefined,
+      bowCategory: bowCategory || undefined,
       notes: data.notes,
       status: ApplicationStatus.PENDING,
       createdAt: new Date(),

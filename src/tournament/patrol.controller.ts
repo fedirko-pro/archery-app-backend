@@ -1,4 +1,15 @@
-import { Controller, Post, Body, Get, Put, Delete, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Put,
+  Delete,
+  Param,
+  UseGuards,
+  Res,
+} from '@nestjs/common';
+import { Response } from 'express';
 import { PatrolService } from './patrol.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -50,9 +61,13 @@ export class PatrolController {
   @Post(':patrolId/members')
   async addMember(
     @Param('patrolId') patrolId: string,
-    @Body() data: { userId: string; role: string }
+    @Body() data: { userId: string; role: string },
   ) {
-    return this.patrolService.addMember(patrolId, data.userId, data.role as any);
+    return this.patrolService.addMember(
+      patrolId,
+      data.userId,
+      data.role as any,
+    );
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -60,8 +75,63 @@ export class PatrolController {
   @Delete(':patrolId/members/:userId')
   async removeMember(
     @Param('patrolId') patrolId: string,
-    @Param('userId') userId: string
+    @Param('userId') userId: string,
   ) {
     return this.patrolService.removeMember(patrolId, userId);
   }
-} 
+
+  /**
+   * Generate patrols for a tournament based on all approved applications
+   * POST /patrols/tournaments/:tournamentId/generate
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRoles.Admin)
+  @Post('tournaments/:tournamentId/generate')
+  async generatePatrols(@Param('tournamentId') tournamentId: string) {
+    return this.patrolService.generatePatrolsForTournament(tournamentId);
+  }
+
+  /**
+   * Generate and save patrols to database
+   * POST /patrols/tournaments/:tournamentId/generate-and-save
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRoles.Admin)
+  @Post('tournaments/:tournamentId/generate-and-save')
+  async generateAndSavePatrols(@Param('tournamentId') tournamentId: string) {
+    // First generate
+    const generatedPatrols =
+      await this.patrolService.generatePatrolsForTournament(tournamentId);
+
+    // Then save
+    const savedPatrols = await this.patrolService.saveGeneratedPatrols(
+      tournamentId,
+      generatedPatrols,
+    );
+
+    return {
+      patrols: savedPatrols,
+      stats: generatedPatrols.stats,
+    };
+  }
+
+  /**
+   * Generate PDF for patrols of a tournament
+   * GET /patrols/tournaments/:tournamentId/pdf
+   */
+  @Get('tournaments/:tournamentId/pdf')
+  async generatePatrolPdf(
+    @Param('tournamentId') tournamentId: string,
+    @Res() res: Response,
+  ) {
+    const pdfBuffer = await this.patrolService.generatePatrolPdf(tournamentId);
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="patrols-${tournamentId}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+
+    res.send(pdfBuffer);
+  }
+}

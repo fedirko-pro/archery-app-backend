@@ -7,10 +7,16 @@ import {
   ApplicationStatus,
 } from '../tournament/tournament-application.entity';
 import bcrypt from 'bcryptjs';
+import { ClubSeeder } from './ClubSeeder';
+import { RuleSeeder } from './RuleSeeder';
+import { BowCategorySeeder } from './BowCategorySeeder';
 
 export class DatabaseSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     console.log('🌱 Starting database seeding...');
+
+    // Seed clubs, rules, and bow categories first
+    await this.call(em, [ClubSeeder, RuleSeeder, BowCategorySeeder]);
 
     // Create admin user first
     const adminPassword = await bcrypt.hash('admin123', 10);
@@ -181,6 +187,7 @@ export class DatabaseSeeder extends Seeder {
         startDate,
         endDate,
         allowMultipleApplications: i % 3 !== 0, // 2/3 allow multiple applications
+        targetCount: 18, // Default number of targets
         banner: bannerImages[i],
         createdBy: admin,
       });
@@ -191,15 +198,16 @@ export class DatabaseSeeder extends Seeder {
 
     // Create applications - each tournament gets applications from random users
     const applications: TournamentApplication[] = [];
-    const categories = [
-      'recurve',
-      'compound',
-      'barebow',
-      'traditional',
-      'longbow',
-    ];
-    const divisions = ['men', 'women', 'mixed'];
-    const equipment = ['olympic', 'compoundBow', 'traditionalBow'];
+    // TODO: Use these when implementing divisionId and bowCategoryId fields
+    // const categories = [
+    //   'recurve',
+    //   'compound',
+    //   'barebow',
+    //   'traditional',
+    //   'longbow',
+    // ];
+    // const divisions = ['men', 'women', 'mixed'];
+    // const equipment = ['olympic', 'compoundBow', 'traditionalBow'];
 
     for (const tournament of tournaments) {
       // Each tournament gets 5-15 random applications
@@ -213,12 +221,11 @@ export class DatabaseSeeder extends Seeder {
       }
 
       for (const user of applicants) {
+        // TODO: Update to use new divisionId and bowCategoryId fields
+        // Need to create Division and BowCategory entities first
         const application = em.create(TournamentApplication, {
           tournament,
           applicant: user,
-          category: categories[Math.floor(Math.random() * categories.length)],
-          division: divisions[Math.floor(Math.random() * divisions.length)],
-          equipment: equipment[Math.floor(Math.random() * equipment.length)],
           status: ApplicationStatus.PENDING,
           notes:
             Math.random() > 0.7 ? 'Looking forward to this event!' : undefined,
@@ -231,6 +238,9 @@ export class DatabaseSeeder extends Seeder {
 
     console.log('\n🎉 Database seeding completed successfully!');
     console.log('\n📊 Summary:');
+    console.log(`   • 5 Clubs`);
+    console.log(`   • 4 Rules (IFAA, IFAA-HB, FABP, HDH-IAA)`);
+    console.log(`   • 23 Bow Categories`);
     console.log(`   • 1 Admin user (admin@archery.com / admin123)`);
     console.log(
       `   • 29 Regular users (user1@archery.com - user29@archery.com / user123)`,

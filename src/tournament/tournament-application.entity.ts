@@ -2,6 +2,8 @@ import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
 import { v4 as uuid } from 'uuid';
 import { Tournament } from './tournament.entity';
 import { User } from '../user/entity/user.entity';
+import { Division } from '../division/division.entity';
+import { BowCategory } from '../bow-category/bow-category.entity';
 
 export enum ApplicationStatus {
   PENDING = 'pending',
@@ -24,14 +26,11 @@ export class TournamentApplication {
   @Property({ type: 'string' })
   status: ApplicationStatus = ApplicationStatus.PENDING;
 
-  @Property({ nullable: true })
-  category?: string; // Категорія стрільця
+  @ManyToOne(() => Division, { nullable: true })
+  division?: Division; // Дивізіон учасника
 
-  @Property({ nullable: true })
-  division?: string; // Дивізіон (чоловічий/жіночий)
-
-  @Property({ nullable: true })
-  equipment?: string; // Тип обладнання
+  @ManyToOne(() => BowCategory, { nullable: true })
+  bowCategory?: BowCategory; // Категорія лука
 
   @Property({ nullable: true })
   notes?: string; // Додаткові нотатки

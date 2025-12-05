@@ -21,6 +21,7 @@ export class UploadService {
   private readonly imageDimensions = {
     avatar: { width: 512, height: 512 },
     banner: { width: 1200, height: 400 },
+    logo: { width: 1200, height: 1200 }, // Max 1200px, will resize proportionally
   };
 
   private readonly allowedImageTypes = [
@@ -47,6 +48,7 @@ export class UploadService {
     const directories = [
       join(this.uploadPath, 'images', 'avatars'),
       join(this.uploadPath, 'images', 'banners'),
+      join(this.uploadPath, 'images', 'logos'),
       join(this.uploadPath, 'attachments'),
     ];
 
@@ -108,10 +110,20 @@ export class UploadService {
       }
 
       // Resize to target dimensions
-      image = image.resize(dimensions.width, dimensions.height, {
-        fit: 'cover',
-        position: 'center',
-      });
+      // For logos, use 'inside' to maintain aspect ratio and fit within max dimensions
+      // For avatars and banners, use 'cover' to fill the entire area
+      const resizeOptions =
+        type === 'logo'
+          ? {
+              fit: 'inside' as const,
+              withoutEnlargement: true, // Don't enlarge smaller images
+            }
+          : {
+              fit: 'cover' as const,
+              position: 'center' as const,
+            };
+
+      image = image.resize(dimensions.width, dimensions.height, resizeOptions);
 
       // Convert to WebP
       const processedBuffer = await image.webp({ quality }).toBuffer();
@@ -250,7 +262,7 @@ export class UploadService {
 
   async deleteImage(
     entityId: string,
-    type: 'avatar' | 'banner',
+    type: 'avatar' | 'banner' | 'logo',
   ): Promise<void> {
     try {
       const filename = `${entityId}.webp`;
@@ -277,6 +289,11 @@ export class UploadService {
     await this.deleteImage(tournamentId, 'banner');
     await this.cleanupTournamentAttachments(tournamentId);
     this.logger.log(`Cleaned up all tournament files: ${tournamentId}`);
+  }
+
+  async cleanupClubFiles(clubId: string): Promise<void> {
+    await this.deleteImage(clubId, 'logo');
+    this.logger.log(`Cleaned up club files: ${clubId}`);
   }
 
   private sanitizeFilename(filename: string): string {

@@ -51,7 +51,7 @@ export class User {
   nationality?: string;
 
   @Property({ nullable: true })
-  sex?: string; // 'm', 'f', 'other'
+  gender?: string; // 'M', 'F', 'Other'
 
   @ManyToOne(() => Club, { nullable: true })
   club?: Club;

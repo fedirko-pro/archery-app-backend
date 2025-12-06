@@ -157,7 +157,7 @@ export class PatrolService {
         club: user.club?.name || 'No Club',
         bowCategory: app.bowCategory?.name || 'Unknown',
         division: app.division?.name || 'Unknown',
-        gender: user.sex || 'other',
+        gender: user.gender || 'Other',
         escalao: app.division?.name || 'Unknown',
       };
     });
@@ -341,7 +341,7 @@ export class PatrolService {
         club: user.club?.name || 'No Club',
         bowCategory: app?.bowCategory?.name || 'Unknown',
         division: app?.division?.name || 'Unknown',
-        gender: user.sex || 'other',
+        gender: user.gender || 'Other',
         escalao: app?.division?.name || 'Unknown',
       };
     });

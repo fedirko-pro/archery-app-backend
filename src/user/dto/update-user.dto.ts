@@ -41,6 +41,18 @@ export class UpdateUserDto {
   @IsString({ each: true })
   @IsOptional()
   categories?: string[];
+
+  @IsString()
+  @IsOptional()
+  clubId?: string;
+
+  @IsString()
+  @IsOptional()
+  nationality?: string;
+
+  @IsString()
+  @IsOptional()
+  gender?: string;
 }
 
 export class AdminUpdateUserDto extends UpdateUserDto {

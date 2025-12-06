@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import { Tournament } from './tournament.entity';
+import { Rule } from '../rule/rule.entity';
 import { subDays, parseISO } from 'date-fns';
 import { UploadService } from '../upload/upload.service';
 
@@ -15,7 +16,9 @@ export class TournamentService {
     private readonly uploadService: UploadService,
   ) {}
 
-  async create(data: Partial<Tournament>): Promise<Tournament> {
+  async create(
+    data: Partial<Tournament> & { ruleCode?: string; ruleId?: string },
+  ): Promise<Tournament> {
     if (!data.title || !data.startDate || !data.createdBy) {
       throw new BadRequestException(
         'Title, startDate, and createdBy are required',
@@ -39,8 +42,28 @@ export class TournamentService {
         : data.applicationDeadline
       : subDays(startDate, 5);
 
+    // Handle rule assignment
+    let rule: Rule | null = null;
+    if (data.ruleId) {
+      rule = await this.em.findOne(Rule, { id: data.ruleId });
+      if (!rule) {
+        throw new NotFoundException(`Rule with ID ${data.ruleId} not found`);
+      }
+    } else if (data.ruleCode) {
+      rule = await this.em.findOne(Rule, { ruleCode: data.ruleCode });
+      if (!rule) {
+        throw new NotFoundException(
+          `Rule with code ${data.ruleCode} not found`,
+        );
+      }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { ruleCode: _ruleCode, ruleId: _ruleId, ...tournamentData } = data;
+
     const tournament = this.em.create(Tournament, {
-      ...data,
+      ...tournamentData,
+      rule,
       startDate,
       endDate,
       applicationDeadline,
@@ -56,7 +79,8 @@ export class TournamentService {
       Tournament,
       {},
       {
-        populate: ['createdBy'],
+        populate: ['createdBy', 'rule'],
+        orderBy: { startDate: 'ASC' }, // Sort by start date, nearest first
       },
     );
   }
@@ -66,7 +90,7 @@ export class TournamentService {
       Tournament,
       { id },
       {
-        populate: ['createdBy'],
+        populate: ['createdBy', 'rule'],
       },
     );
 
@@ -77,7 +101,10 @@ export class TournamentService {
     return tournament;
   }
 
-  async update(id: string, data: Partial<Tournament>): Promise<Tournament> {
+  async update(
+    id: string,
+    data: Partial<Tournament> & { ruleCode?: string; ruleId?: string },
+  ): Promise<Tournament> {
     const tournament = await this.findById(id);
 
     if (data.startDate) {
@@ -95,7 +122,32 @@ export class TournamentService {
       }
     }
 
-    Object.assign(tournament, data);
+    // Handle rule assignment
+    if (data.ruleId !== undefined || data.ruleCode !== undefined) {
+      let rule: Rule | undefined = undefined;
+      if (data.ruleId) {
+        const foundRule = await this.em.findOne(Rule, { id: data.ruleId });
+        if (!foundRule) {
+          throw new NotFoundException(`Rule with ID ${data.ruleId} not found`);
+        }
+        rule = foundRule;
+      } else if (data.ruleCode) {
+        const foundRule = await this.em.findOne(Rule, {
+          ruleCode: data.ruleCode,
+        });
+        if (!foundRule) {
+          throw new NotFoundException(
+            `Rule with code ${data.ruleCode} not found`,
+          );
+        }
+        rule = foundRule;
+      }
+      tournament.rule = rule;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { ruleCode: _rc, ruleId: _ri, ...updateData } = data;
+    Object.assign(tournament, updateData);
     tournament.updatedAt = new Date();
 
     await this.em.persistAndFlush(tournament);

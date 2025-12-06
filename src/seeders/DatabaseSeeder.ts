@@ -6,10 +6,17 @@ import {
   TournamentApplication,
   ApplicationStatus,
 } from '../tournament/tournament-application.entity';
+import { Rule } from '../rule/rule.entity';
+import { Club } from '../club/club.entity';
 import bcrypt from 'bcryptjs';
 import { ClubSeeder } from './ClubSeeder';
 import { RuleSeeder } from './RuleSeeder';
 import { BowCategorySeeder } from './BowCategorySeeder';
+
+// Helper function to generate random 8-digit federation number
+function generateFederationNumber(): string {
+  return String(Math.floor(10000000 + Math.random() * 90000000));
+}
 
 export class DatabaseSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
@@ -17,6 +24,10 @@ export class DatabaseSeeder extends Seeder {
 
     // Seed clubs, rules, and bow categories first
     await this.call(em, [ClubSeeder, RuleSeeder, BowCategorySeeder]);
+
+    // Fetch clubs for user assignment
+    const clubs = await em.find(Club, {});
+    console.log(`✅ Found ${clubs.length} clubs for user assignment`);
 
     // Create admin user first
     const adminPassword = await bcrypt.hash('admin123', 10);
@@ -29,11 +40,15 @@ export class DatabaseSeeder extends Seeder {
       authProvider: 'local',
       picture: 'https://i.pravatar.cc/512?img=33',
       appLanguage: 'en',
+      nationality: 'Portuguesa',
+      gender: 'M',
+      federationNumber: generateFederationNumber(),
+      club: clubs.length > 0 ? clubs[0] : undefined,
     });
     await em.persistAndFlush(admin);
     console.log('✅ Admin user created');
 
-    // Create 29 regular users (total 30 with admin)
+    // Create 60 regular users (total 61 with admin)
     const users: User[] = [admin];
     const userPassword = await bcrypt.hash('user123', 10);
 
@@ -67,6 +82,37 @@ export class DatabaseSeeder extends Seeder {
       'Luís',
       'Carolina',
       'Vasco',
+      'Teresa',
+      'Fernando',
+      'Leonor',
+      'António',
+      'Matilde',
+      'José',
+      'Lara',
+      'Manuel',
+      'Clara',
+      'Francisco',
+      'Alice',
+      'Rodrigo',
+      'Constança',
+      'Tomás',
+      'Mafalda',
+      'Duarte',
+      'Bianca',
+      'Afonso',
+      'Filipa',
+      'Guilherme',
+      'Daniela',
+      'Simão',
+      'Helena',
+      'Martim',
+      'Raquel',
+      'David',
+      'Patrícia',
+      'Alexandre',
+      'Vera',
+      'Bernardo',
+      'Sandra',
     ];
 
     const lastNames = [
@@ -99,23 +145,109 @@ export class DatabaseSeeder extends Seeder {
       'Soares',
       'Vieira',
       'Campos',
+      'Cardoso',
+      'Rocha',
+      'Dias',
+      'Araújo',
+      'Melo',
+      'Barbosa',
+      'Ramos',
+      'Freitas',
+      'Castro',
+      'Machado',
+      'Reis',
+      'Azevedo',
+      'Miranda',
+      'Cunha',
+      'Tavares',
+      'Pires',
+      'Fonseca',
+      'Moura',
+      'Figueiredo',
+      'Antunes',
+      'Baptista',
+      'Carneiro',
+      'Nascimento',
+      'Coelho',
+      'Cruz',
+      'Matos',
+      'Branco',
+      'Esteves',
+      'Henriques',
+      'Leal',
+      'Magalhães',
     ];
 
-    for (let i = 0; i < 29; i++) {
+    // Define gender based on typical Portuguese names
+    const femaleNames = [
+      'Maria',
+      'Ana',
+      'Sofia',
+      'Beatriz',
+      'Inês',
+      'Catarina',
+      'Mariana',
+      'Rita',
+      'Sara',
+      'Marta',
+      'Joana',
+      'Diana',
+      'Francisca',
+      'Carolina',
+      'Teresa',
+      'Leonor',
+      'Matilde',
+      'Lara',
+      'Clara',
+      'Alice',
+      'Constança',
+      'Mafalda',
+      'Bianca',
+      'Filipa',
+      'Daniela',
+      'Helena',
+      'Raquel',
+      'Patrícia',
+      'Vera',
+      'Sandra',
+    ];
+
+    for (let i = 0; i < 60; i++) {
+      // 90% Portuguesa, 10% Outro (indices 0-5 are Outro, rest are Portuguesa)
+      const nationality = i < 6 ? 'Outro' : 'Portuguesa';
+      const firstName = firstNames[i % firstNames.length];
+      const lastName = lastNames[i % lastNames.length];
+      const gender = femaleNames.includes(firstName) ? 'F' : 'M';
+      // Assign random club (some users may have no club - 10% chance)
+      const club =
+        Math.random() < 0.1
+          ? undefined
+          : clubs[Math.floor(Math.random() * clubs.length)];
+
       const user = em.create(User, {
         email: `user${i + 1}@archery.com`,
         password: userPassword,
-        firstName: firstNames[i],
-        lastName: lastNames[i],
+        firstName,
+        lastName,
         role: 'user',
         authProvider: 'local',
-        picture: `https://i.pravatar.cc/512?img=${i + 1}`,
+        picture: `https://i.pravatar.cc/512?img=${(i % 70) + 1}`,
         appLanguage: i % 2 === 0 ? 'pt' : 'en',
+        nationality,
+        gender,
+        federationNumber: generateFederationNumber(),
+        club,
       });
       users.push(user);
     }
     await em.persistAndFlush(users);
-    console.log('✅ 29 regular users created');
+    console.log(
+      '✅ 60 regular users created (with nationality, gender, federation number, and club)',
+    );
+
+    // Fetch rules for tournament assignment
+    const rules = await em.find(Rule, {});
+    console.log(`✅ Found ${rules.length} rules for tournament assignment`);
 
     // Create 10 tournaments with random banners
     const tournaments: Tournament[] = [];
@@ -180,16 +312,25 @@ export class DatabaseSeeder extends Seeder {
       const endDate = new Date(startDate);
       endDate.setDate(startDate.getDate() + (i % 3 === 0 ? 2 : 1)); // Some tournaments are 2 days
 
+      // Assign a rule to each tournament (cycle through available rules)
+      const rule = rules.length > 0 ? rules[i % rules.length] : undefined;
+
+      // Set application deadline to 5 days before start
+      const applicationDeadline = new Date(startDate);
+      applicationDeadline.setDate(startDate.getDate() - 5);
+
       const tournament = em.create(Tournament, {
         title: tournamentNames[i],
         description: descriptions[i],
         address: locations[i],
         startDate,
         endDate,
+        applicationDeadline,
         allowMultipleApplications: i % 3 !== 0, // 2/3 allow multiple applications
-        targetCount: 18, // Default number of targets
+        targetCount: 12 + (i % 3) * 6, // 12, 18, or 24 targets
         banner: bannerImages[i],
         createdBy: admin,
+        rule,
       });
       tournaments.push(tournament);
     }
@@ -210,23 +351,29 @@ export class DatabaseSeeder extends Seeder {
     // const equipment = ['olympic', 'compoundBow', 'traditionalBow'];
 
     for (const tournament of tournaments) {
-      // Each tournament gets 5-15 random applications
-      const numApplications = 5 + Math.floor(Math.random() * 11);
+      // Each tournament gets 30-50 random applications
+      const numApplications = 30 + Math.floor(Math.random() * 21);
       const applicants = new Set<User>();
 
-      while (applicants.size < numApplications) {
+      while (
+        applicants.size < numApplications &&
+        applicants.size < users.length - 1
+      ) {
         // Pick random user (skip admin)
-        const randomUser = users[1 + Math.floor(Math.random() * 29)];
+        const randomUser = users[1 + Math.floor(Math.random() * 60)];
         applicants.add(randomUser);
       }
 
       for (const user of applicants) {
-        // TODO: Update to use new divisionId and bowCategoryId fields
-        // Need to create Division and BowCategory entities first
+        // 90% approved, 10% pending
+        const status =
+          Math.random() < 0.9
+            ? ApplicationStatus.APPROVED
+            : ApplicationStatus.PENDING;
         const application = em.create(TournamentApplication, {
           tournament,
           applicant: user,
-          status: ApplicationStatus.PENDING,
+          status,
           notes:
             Math.random() > 0.7 ? 'Looking forward to this event!' : undefined,
         });
@@ -243,12 +390,12 @@ export class DatabaseSeeder extends Seeder {
     console.log(`   • 23 Bow Categories`);
     console.log(`   • 1 Admin user (admin@archery.com / admin123)`);
     console.log(
-      `   • 29 Regular users (user1@archery.com - user29@archery.com / user123)`,
+      `   • 60 Regular users (user1@archery.com - user60@archery.com / user123)`,
     );
-    console.log(`   • 10 Tournaments with banners`);
+    console.log(`   • 10 Tournaments with banners and rules`);
     console.log(`   • ${applications.length} Tournament applications`);
     console.log('\n🔑 Login credentials:');
     console.log('   Admin: admin@archery.com / admin123');
-    console.log('   Users: user1@archery.com - user29@archery.com / user123');
+    console.log('   Users: user1@archery.com - user60@archery.com / user123');
   }
 }

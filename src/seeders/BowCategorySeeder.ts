@@ -10,12 +10,22 @@ export class BowCategorySeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     console.log('🏹 Seeding Bow Categories...\n');
 
-    // Get IFAA rule
+    // Get all rules
     const ifaaRule = await em.findOne(Rule, { ruleCode: 'IFAA' });
+    const fabpRule = await em.findOne(Rule, { ruleCode: 'FABP' });
+    const hdhRule = await em.findOne(Rule, { ruleCode: 'HDH-IAA' });
+
     if (!ifaaRule) {
       console.log('❌ IFAA rule not found, skipping bow category seeding');
       return;
     }
+
+    // Helper to determine which rule a category belongs to
+    const getRuleForCategory = (ruleReference: string): Rule => {
+      if (ruleReference.includes('FABP')) return fabpRule || ifaaRule;
+      if (ruleReference.includes('HDH-IAA')) return hdhRule || ifaaRule;
+      return ifaaRule;
+    };
 
     // Bow Categories with multilingual descriptions
     const bowCategories = [
@@ -276,6 +286,7 @@ export class BowCategorySeeder extends Seeder {
 
     const createdBowCategories: BowCategory[] = [];
     for (const catData of bowCategories) {
+      const rule = getRuleForCategory(catData.ruleReference);
       const bowCategory = em.create(BowCategory, {
         code: catData.code,
         name: catData.name,
@@ -286,7 +297,7 @@ export class BowCategorySeeder extends Seeder {
         descriptionEs: catData.descriptionEs,
         ruleReference: catData.ruleReference,
         ruleCitation: catData.ruleCitation,
-        rule: ifaaRule,
+        rule: rule,
       });
       createdBowCategories.push(bowCategory);
     }

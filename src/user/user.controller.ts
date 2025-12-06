@@ -45,7 +45,10 @@ export class UserController {
         website,
         language,
         federationNumber,
+        nationality,
+        gender,
         categories,
+        club,
         createdAt,
         updatedAt,
       } = user as any;
@@ -61,7 +64,10 @@ export class UserController {
         website,
         language,
         federationNumber,
+        nationality,
+        gender,
         categories,
+        clubId: club?.id || null,
         createdAt,
         updatedAt,
       };
@@ -104,7 +110,42 @@ export class UserController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRoles.Admin)
   async getUserById(@Param('userId') userId: string) {
-    return this.userService.findById(userId);
+    const user = await this.userService.findById(userId);
+    if (!user) return null;
+    const {
+      id,
+      email,
+      role,
+      firstName,
+      lastName,
+      picture,
+      bio,
+      location,
+      federationNumber,
+      nationality,
+      gender,
+      categories,
+      club,
+      createdAt,
+      updatedAt,
+    } = user as any;
+    return {
+      id,
+      email,
+      role,
+      firstName,
+      lastName,
+      picture,
+      bio,
+      location,
+      federationNumber,
+      nationality,
+      gender,
+      categories,
+      clubId: club?.id || null,
+      createdAt,
+      updatedAt,
+    };
   }
 
   @Patch('admin/:id')

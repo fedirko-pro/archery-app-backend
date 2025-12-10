@@ -53,6 +53,9 @@ export class User {
   @Property({ nullable: true })
   gender?: string; // 'M', 'F', 'Other'
 
+  @Property({ type: 'json', nullable: true })
+  categories?: string[]; // User's preferred bow categories (e.g., ['RC', 'CP'])
+
   @ManyToOne(() => Club, { nullable: true })
   club?: Club;
 

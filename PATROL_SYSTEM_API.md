@@ -1,24 +1,90 @@
 # Patrol System API Documentation
 
 ## Overview
-Система генерації патрулів для змагань з стрільби з лука з автоматичним розподілом учасників.
+
+Patrol generation system for archery competitions with automatic participant distribution based on bow category, division, and gender.
+
+---
+
+## 🎯 Patrol Generation Algorithm
+
+### Core Principle
+The algorithm groups participants by **bow category** as the primary criterion, ensuring that archers using the same type of bow compete together. Secondary grouping considers division (age group) and gender.
+
+### Algorithm Steps
+
+#### Step 1: Group by Bow Category
+```
+Input: All approved applications
+Output: Groups of participants by bow category (RC, CP, LB, etc.)
+
+Example:
+  RC (Recurve): [user1, user2, user3, user4, user5]
+  CP (Compound): [user6, user7, user8]
+  LB (Longbow): [user9, user10, user11, user12]
+```
+
+Within each bow category group, participants are sorted by division+gender for optimal sub-grouping.
+
+#### Step 2: Calculate Target Patrol Sizes
+```
+avgSize = ceil(totalParticipants / targetPatrolCount)
+minSize = max(3, floor(avgSize * 0.8))
+maxSize = ceil(avgSize * 1.2)
+```
+
+#### Step 3: Initial Patrol Formation
+Create patrols from each bow category group, respecting min/max sizes.
+
+#### Step 4: Adjust to Target Count
+- If too many patrols: Merge smaller patrols (prefer same category)
+- If too few patrols: Split larger patrols
+
+#### Step 5: Balance Patrol Sizes
+Move participants between patrols to achieve balanced sizes.
+Priority when moving: 
+1. **Bow Category match** (10 points)
+2. **Division match** (3 points)  
+3. **Gender match** (1 point)
+
+#### Step 6: Balance Clubs for Judges
+Best-effort to ensure judges come from different clubs for fairness.
+
+#### Step 7: Assign Roles
+- **1 Leader**: Random participant (not a judge)
+- **2 Judges**: Preferably from different clubs
+
+#### Step 8: Calculate Statistics
+- `categoryHomogeneity`: % of patrols where all have same bow category
+- `clubDiversityScore`: % of patrols with judges from different clubs
+- `divisionHomogeneity`: % of patrols where all have same division
+- `genderHomogeneity`: % of patrols where all have same gender
+
+### Statistics Explained
+
+| Metric | Description | Target |
+|--------|-------------|--------|
+| Category Match | % of patrols with same bow category | ≥70% |
+| Club Diversity | % of patrols with judges from different clubs | ≥70% |
+| Division Match | % of patrols with same division | ≥50% |
+| Gender Match | % of patrols with same gender | ≥50% |
 
 ---
 
 ## 🏢 Club Endpoints
 
 ### GET /clubs
-Отримати список всіх клубів
+Get list of all clubs
 - **Auth**: No
 - **Response**: `Club[]`
 
 ### GET /clubs/:id
-Отримати клуб за ID
+Get club by ID
 - **Auth**: No
 - **Response**: `Club`
 
 ### POST /clubs
-Створити новий клуб
+Create new club
 - **Auth**: Yes (Admin)
 - **Body**:
 ```json
@@ -32,13 +98,13 @@
 - **Response**: `Club`
 
 ### PATCH /clubs/:id
-Оновити клуб
+Update club
 - **Auth**: Yes (Admin)
 - **Body**: Partial `CreateClubDto`
 - **Response**: `Club`
 
 ### DELETE /clubs/:id
-Видалити клуб
+Delete club
 - **Auth**: Yes (Admin)
 - **Response**: 204 No Content
 
@@ -47,19 +113,19 @@
 ## 📋 Division Endpoints
 
 ### GET /divisions
-Отримати список дивізіонів (можна фільтрувати за правилами)
+Get list of divisions (can filter by rule)
 - **Auth**: No
 - **Query Params**:
-  - `ruleId` (optional) - фільтр за ID правила
+  - `ruleId` (optional) - filter by rule ID
 - **Response**: `Division[]`
 
 ### GET /divisions/:id
-Отримати дивізіон за ID
+Get division by ID
 - **Auth**: No
-- **Response**: `Division` (з populate rule)
+- **Response**: `Division` (with populated rule)
 
 ### POST /divisions
-Створити новий дивізіон
+Create new division
 - **Auth**: Yes (Admin)
 - **Body**:
 ```json
@@ -72,13 +138,13 @@
 - **Response**: `Division`
 
 ### PATCH /divisions/:id
-Оновити дивізіон
+Update division
 - **Auth**: Yes (Admin)
 - **Body**: Partial `CreateDivisionDto`
 - **Response**: `Division`
 
 ### DELETE /divisions/:id
-Видалити дивізіон
+Delete division
 - **Auth**: Yes (Admin)
 - **Response**: 204 No Content
 
@@ -87,43 +153,58 @@
 ## 📜 Rule Endpoints
 
 ### GET /rules
-Отримати список всіх правил
+Get list of all rules
 - **Auth**: No
-- **Response**: `Rule[]` (з populate divisions та bowCategories)
+- **Response**: `Rule[]` (with populated divisions and bowCategories)
 
 ### GET /rules/:id
-Отримати правило за ID
+Get rule by ID
 - **Auth**: No
-- **Response**: `Rule` (з populate divisions та bowCategories)
+- **Response**: `Rule` (with populated divisions and bowCategories)
 
-**Note**: Rules створюються через seeders, немає CRUD endpoints для створення.
+**Note**: Rules are created via seeders, no CRUD endpoints for creation.
 
 ---
 
 ## 🏹 Bow Category Endpoints
 
 ### GET /bow-categories
-Отримати список категорій луків (можна фільтрувати за правилами)
+Get list of bow categories (can filter by rule)
 - **Auth**: No
 - **Query Params**:
-  - `ruleId` (optional) - фільтр за ID правила
+  - `ruleId` (optional) - filter by rule ID
 - **Response**: `BowCategory[]`
 
 ### GET /bow-categories/:id
-Отримати категорію лука за ID
+Get bow category by ID
 - **Auth**: No
-- **Response**: `BowCategory` (з populate rule)
+- **Response**: `BowCategory` (with populated rule)
 
-**Note**: Bow Categories створюються через seeders, немає CRUD endpoints для створення.
+**Note**: Bow Categories are created via seeders.
 
 ---
 
 ## 🎯 Patrol Generation Endpoints
 
-### POST /patrols/tournaments/:tournamentId/generate
-**Згенерувати патрулі (preview) на основі ВСІХ затверджених заявок**
+### GET /patrols/tournaments/:tournamentId/generate-or-get
+**Get existing patrols or auto-generate if none exist**
 - **Auth**: Yes (Admin)
-- **Body**: No body required
+- **Response**:
+```json
+{
+  "patrols": [...],
+  "stats": {...},
+  "isNewlyGenerated": true|false
+}
+```
+
+This is the recommended endpoint for the frontend - it automatically generates and saves patrols if they don't exist.
+
+---
+
+### POST /patrols/tournaments/:tournamentId/generate
+**Generate patrols (preview) - does NOT save to database**
+- **Auth**: Yes (Admin)
 - **Response**:
 ```json
 {
@@ -141,6 +222,7 @@
     "averagePatrolSize": 5.5,
     "clubDiversityScore": 85.5,
     "homogeneityScores": {
+      "category": 75.0,
       "division": 70.0,
       "gender": 60.0
     }
@@ -148,103 +230,60 @@
 }
 ```
 
-**How it works:**
-- Бере ВСІ approved заявки для турніру (без фільтрації по категорії лука)
-- Використовує `targetCount` з турніру (за замовчуванням 18 мішеней)
-- Генерує патрулі автоматично
-
-**Algorithm Details:**
-1. Групування учасників за схожістю (division + gender)
-2. Розрахунок оптимальних розмірів патрулів (min: 3, avg, max)
-3. Формування початкових патрулів
-4. Коригування до цільової кількості мішеней (merge/split)
-5. Балансування розмірів патрулів
-6. Балансування клубів для різноманітності суддів
-7. Призначення ролей (1 лідер + 2 судді)
-
-**Stats Explanation:**
-- `clubDiversityScore`: відсоток патрулів де судді з різних клубів
-- `homogeneityScores.division`: відсоток патрулів де всі учасники з одного дивізіону
-- `homogeneityScores.gender`: відсоток патрулів де всі учасники однієї статі
-
 ---
 
 ### POST /patrols/tournaments/:tournamentId/generate-and-save
-**Згенерувати та зберегти патрулі в БД**
+**Generate and save patrols to database (deletes existing patrols first)**
 - **Auth**: Yes (Admin)
-- **Body**: No body required
-- **Response**:
-```json
-{
-  "patrols": [
-    {
-      "id": "patrol-uuid",
-      "name": "Target 1",
-      "description": "Patrol for target 1",
-      "tournament": { "id": "...", "title": "..." },
-      "leader": { "id": "...", "firstName": "...", ... },
-      "createdAt": "2025-12-01T19:00:00Z",
-      "updatedAt": null
-    }
-  ],
-  "stats": { ... }
-}
-```
+- **Response**: Same as generate, but patrols are persisted
 
-**Note**: Цей endpoint створює записи Patrol та PatrolMember в БД.
+**Note**: This endpoint deletes ALL existing patrols for the tournament before generating new ones.
 
 ---
 
 ### GET /patrols/tournaments/:tournamentId/pdf
-**Згенерувати PDF з збереженими патрулями турніру для друку**
+**Generate PDF with saved patrol list for printing**
 - **Auth**: No
 - **Response**: PDF file (application/pdf)
 
-**Note**: Цей endpoint працює зі збереженими патрулями турніру (після виклику `/generate-and-save`). Якщо патрулі не збережені - поверне помилку.
-
 **PDF Format:**
 ```
-TOURNAMENT NAME - BOW CATEGORY
-Date: 01/12/2025
-
-═══════════════════════════════════════════
-PATROL 1 (Target #1)
-═══════════════════════════════════════════
-Leader: João Silva (Club A)
-Judges: Maria Santos (Club B), Pedro Costa (Club C)
-
-Members:
-1. João Silva - Club A - Adult Male - M
-2. Maria Santos - Club B - Adult Female - F
-3. Pedro Costa - Club C - Veteran Male - M
-4. Ana Rodrigues - Club A - Adult Female - F
-
-═══════════════════════════════════════════
-PATROL 2 (Target #2)
-...
+┌─────────────────────────────────────────────────────────┐
+│              Tournament Name                            │
+│              Patrol List | 01/12/2025                   │
+├────────┬──────────────┬──────────┬──────────┬─────┬─────┤
+│ Patrol │ Name         │ Club     │ Division │ Cat │Role │
+├────────┼──────────────┼──────────┼──────────┼─────┼─────┤
+│ #1     │ João Silva   │ Club A   │ Adult M  │ RC  │Lead │
+│        │ Maria Santos │ Club B   │ Adult F  │ RC  │Judge│
+│        │ Pedro Costa  │ Club C   │ Adult M  │ RC  │Judge│
+│        │ Ana Rodrigues│ Club A   │ Adult F  │ RC  │     │
+├────────┼──────────────┼──────────┼──────────┼─────┼─────┤
+│ #2     │ ...          │ ...      │ ...      │ CP  │     │
+└────────┴──────────────┴──────────┴──────────┴─────┴─────┘
 ```
 
 ---
 
-## 📊 Other Patrol Endpoints
+## 📊 Patrol CRUD Endpoints
 
 ### GET /patrols
-Отримати всі патрулі
+Get all patrols
 - **Auth**: No
 - **Response**: `Patrol[]`
 
 ### GET /patrols/:id
-Отримати патруль за ID
+Get patrol by ID
 - **Auth**: No
 - **Response**: `Patrol`
 
 ### GET /patrols/tournament/:tournamentId
-Отримати всі патрулі для турніру
+Get all patrols for tournament
 - **Auth**: No
-- **Response**: `Patrol[]`
+- **Response**: `Patrol[]` with members including division and bowCategory
 
 ### POST /patrols
-Створити патруль вручну
+Create patrol manually
 - **Auth**: Yes (Admin)
 - **Body**:
 ```json
@@ -257,30 +296,30 @@ PATROL 2 (Target #2)
 - **Response**: `Patrol`
 
 ### PUT /patrols/:id
-Оновити патруль
+Update patrol
 - **Auth**: Yes (Admin)
 - **Body**: Partial patrol data
 - **Response**: `Patrol`
 
 ### DELETE /patrols/:id
-Видалити патруль
+Delete patrol (also deletes all patrol members)
 - **Auth**: Yes (Admin)
 - **Response**: 204 No Content
 
 ### POST /patrols/:patrolId/members
-Додати учасника до патруля
+Add member to patrol
 - **Auth**: Yes (Admin)
 - **Body**:
 ```json
 {
   "userId": "user-uuid",
-  "role": "MEMBER" | "LEADER" | "JUDGE"
+  "role": "member" | "leader" | "judge"
 }
 ```
 - **Response**: `PatrolMember`
 
 ### DELETE /patrols/:patrolId/members/:userId
-Видалити учасника з патруля
+Remove member from patrol
 - **Auth**: Yes (Admin)
 - **Response**: 204 No Content
 
@@ -318,8 +357,8 @@ PATROL 2 (Target #2)
 {
   id: string;
   name: string;  // e.g., "Field Sport Compound"
-  code?: string;  // e.g., "FSC", "LB", "BBC"
-  description?: string;
+  code?: string;  // e.g., "FSC", "LB", "BBC", "RC", "CP"
+  descriptionEn?: string;
   rule: Rule;
   createdAt: Date;
   updatedAt?: Date;
@@ -330,8 +369,10 @@ PATROL 2 (Target #2)
 ```typescript
 {
   id: string;
-  name: string;  // e.g., "FABP Rota dos Castelos"
-  description?: string;
+  ruleCode: string;  // e.g., "FABP-ROTA"
+  ruleName: string;  // e.g., "FABP Rota dos Castelos"
+  descriptionEn?: string;
+  descriptionPt?: string;
   divisions: Division[];
   bowCategories: BowCategory[];
   createdAt: Date;
@@ -343,7 +384,7 @@ PATROL 2 (Target #2)
 ```typescript
 {
   id: string;
-  name: string;
+  name: string;  // e.g., "Target 1"
   description?: string;
   tournament: Tournament;
   leader: User;
@@ -356,11 +397,24 @@ PATROL 2 (Target #2)
 ### PatrolMember
 ```typescript
 {
+  id: string;
   patrol: Patrol;
   user: User;
-  role: 'MEMBER' | 'LEADER' | 'JUDGE';
-  position?: number;
+  role: 'member' | 'leader' | 'judge';
   createdAt: Date;
+}
+```
+
+### PatrolEntry (Internal - for generation)
+```typescript
+{
+  participantId: string;
+  name: string;
+  club: string;
+  bowCategory: string;  // e.g., "RC", "CP"
+  division: string;     // e.g., "Adult Male"
+  gender: string;       // "M", "F", "Other"
+  escalao: string;
 }
 ```
 
@@ -370,8 +424,8 @@ PATROL 2 (Target #2)
 
 ### 1. Setup (One-time)
 ```bash
-# Run FABP Rota seeder
-npx ts-node src/scripts/run-fabp-seeder.ts
+# Run database seeder
+npx mikro-orm seeder:run --class=DatabaseSeeder
 ```
 
 ### 2. Admin creates tournament with rule
@@ -380,6 +434,7 @@ POST /tournaments
 {
   "title": "Championship 2025",
   "ruleId": "fabp-rota-rule-id",
+  "targetCount": 18,
   ...
 }
 ```
@@ -390,25 +445,31 @@ POST /tournament-applications
 {
   "tournamentId": "...",
   "divisionId": "adult-male-id",
-  "bowCategoryId": "fsc-id",
+  "bowCategoryId": "rc-id",
   "notes": "..."
 }
 ```
 
 ### 4. Admin approves applications
 ```http
-PATCH /tournament-applications/:id/approve
+PATCH /tournament-applications/:id/status
+{
+  "status": "approved"
+}
 ```
 
-### 5. Admin generates patrols
+### 5. Admin views patrols (auto-generates if needed)
 ```http
-# Preview first (uses all approved applications + tournament's targetCount)
-POST /patrols/tournaments/:id/generate
+GET /patrols/tournaments/:id/generate-or-get
+```
 
-# If satisfied, save to DB
+### 6. Admin can regenerate if needed
+```http
 POST /patrols/tournaments/:id/generate-and-save
+```
 
-# Generate PDF for printing (works with saved patrols)
+### 7. Generate PDF for printing
+```http
 GET /patrols/tournaments/:id/pdf
 ```
 
@@ -418,22 +479,25 @@ GET /patrols/tournaments/:id/pdf
 
 1. **Insufficient participants**: Automatically reduces patrol count
 2. **All from same club**: Proceeds with same-club judges (soft constraint)
-3. **Uneven numbers**: Distributes evenly (some patrols with N, others with N+1)
-4. **Small groups**: Merges with most similar patrols
+3. **Uneven numbers**: Distributes evenly (some patrols N, others N+1)
+4. **Small groups**: Merges with most similar patrols (same category preferred)
 5. **Too many participants**: Creates larger patrols while maintaining balance
+6. **Mixed categories**: Algorithm tries to keep same-category together
+7. **No existing patrols**: Auto-generates when accessing patrol list
 
 ---
 
 ## 📈 Success Criteria
 
-✅ Generates exactly targetPatrolCount patrols (or adjusts if impossible)
-✅ Every patrol has >= 3 members (minPatrolSize)
-✅ All approved participants distributed (none left out)
-✅ Every patrol has 1 leader + 2 judges
-✅ Patrol sizes differ by max 2 (balanced)
-✅ Best effort to assign judges from different clubs
-✅ Returns meaningful stats for quality assessment
-✅ PDF generates correctly with all information
+✅ Generates exactly targetPatrolCount patrols (or adjusts if impossible)  
+✅ Every patrol has >= 3 members (minPatrolSize)  
+✅ All approved participants distributed (none left out)  
+✅ Every patrol has 1 leader + 2 judges  
+✅ Patrol sizes differ by max 2 (balanced)  
+✅ Maximizes bow category homogeneity  
+✅ Best effort to assign judges from different clubs  
+✅ Returns meaningful stats for quality assessment  
+✅ PDF generates correctly with all information  
 
 ---
 
@@ -450,14 +514,25 @@ Admin-only endpoints also require `role: 'admin'` in JWT payload.
 
 ## 📦 Available Seeders
 
-### FABP Rota dos Castelos
-**File**: `src/seeders/FABPRotaSeeder.ts`
-**Run**: `npx ts-node src/scripts/run-fabp-seeder.ts`
+### DatabaseSeeder (Main)
+**File**: `src/seeders/DatabaseSeeder.ts`
+**Run**: `npx mikro-orm seeder:run --class=DatabaseSeeder`
 
 Creates:
-- 1 Rule: "FABP Rota dos Castelos"
-- 8 Divisions: Cub/Junior/Adult/Veteran × Male/Female
-- 7 Bow Categories: FSC, LB, BBC, RC, CP, TR, BBR
+- 10 Clubs
+- 5 Rules (including FABP-ROTA)
+- 30 Bow Categories
+- 8 Divisions (Cub/Junior/Adult/Veteran × Male/Female)
+- 1 Admin user
+- 90 Regular users
+- 10 Tournaments
+- ~500 Tournament applications (with divisions and bow categories)
+
+### FABPRotaSeeder (Standalone)
+**File**: `src/seeders/FABPRotaSeeder.ts`
+**Run**: `npx mikro-orm seeder:run --class=FABPRotaSeeder`
+
+Creates only FABP-specific data (idempotent - safe to run multiple times).
 
 ---
 
@@ -478,6 +553,13 @@ pnpm run mikro-orm migration:up
 pnpm run start:dev
 ```
 
+### Reset Database
+```bash
+npx mikro-orm schema:drop --run
+npx mikro-orm schema:create --run
+npx mikro-orm seeder:run --class=DatabaseSeeder
+```
+
 ---
 
 ## 📝 Notes
@@ -487,3 +569,4 @@ pnpm run start:dev
 - User's `federationNumber` field stores FABP ID or other federation identifiers
 - Patrol generation is based on APPROVED applications only
 - PDF generation happens on-the-fly (not cached)
+- Bow category code (e.g., "RC") is preferred over full name in compact displays

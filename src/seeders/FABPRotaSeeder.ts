@@ -6,26 +6,32 @@ import { BowCategory } from '../bow-category/bow-category.entity';
 
 /**
  * Seeder for FABP Rota dos Castelos rules, divisions, and bow categories
+ * This seeder checks for existing data before creating to avoid duplicates
  */
 export class FABPRotaSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     console.log('🏹 Seeding FABP Rota dos Castelos data...\n');
 
-    // Create FABP Rota dos Castelos Rule
-    const fabpRule = em.create(Rule, {
-      ruleCode: 'FABP-ROTA',
-      ruleName: 'FABP Rota dos Castelos',
-      descriptionEn:
-        'Federação de Arco e Besta de Portugal - Rota dos Castelos rules',
-      descriptionPt:
-        'Federação de Arco e Besta de Portugal - Regras da Rota dos Castelos',
-    });
+    // Check if FABP rule already exists
+    let fabpRule = await em.findOne(Rule, { ruleCode: 'FABP-ROTA' });
 
-    await em.persistAndFlush(fabpRule);
-    console.log('✅ Rule created: FABP Rota dos Castelos');
+    if (!fabpRule) {
+      fabpRule = em.create(Rule, {
+        ruleCode: 'FABP-ROTA',
+        ruleName: 'FABP Rota dos Castelos',
+        descriptionEn:
+          'Federação de Arco e Besta de Portugal - Rota dos Castelos rules',
+        descriptionPt:
+          'Federação de Arco e Besta de Portugal - Regras da Rota dos Castelos',
+      });
+      await em.persistAndFlush(fabpRule);
+      console.log('✅ Rule created: FABP Rota dos Castelos');
+    } else {
+      console.log('ℹ️  Rule already exists: FABP Rota dos Castelos');
+    }
 
-    // Create Divisions (combining age and gender)
-    const divisions = [
+    // Create Divisions (combining age and gender) - check for existing
+    const divisionsData = [
       { name: 'Cub Male', description: 'Boys under 12 years' },
       { name: 'Cub Female', description: 'Girls under 12 years' },
       { name: 'Junior Male', description: 'Boys 12-17 years' },
@@ -36,21 +42,25 @@ export class FABPRotaSeeder extends Seeder {
       { name: 'Veteran Female', description: 'Women 50+ years' },
     ];
 
-    const createdDivisions: Division[] = [];
-    for (const div of divisions) {
-      const division = em.create(Division, {
-        name: div.name,
-        description: div.description,
-        rule: fabpRule,
-      });
-      createdDivisions.push(division);
+    let divisionsCreated = 0;
+    for (const div of divisionsData) {
+      const existing = await em.findOne(Division, { name: div.name });
+      if (!existing) {
+        const division = em.create(Division, {
+          name: div.name,
+          description: div.description,
+          rule: fabpRule,
+        });
+        await em.persistAndFlush(division);
+        divisionsCreated++;
+      }
     }
+    console.log(
+      `✅ ${divisionsCreated} new Divisions created (${divisionsData.length - divisionsCreated} already existed)`,
+    );
 
-    await em.persistAndFlush(createdDivisions);
-    console.log(`✅ ${createdDivisions.length} Divisions created`);
-
-    // Create Bow Categories
-    const bowCategories = [
+    // Create Bow Categories - check for existing by code
+    const bowCategoriesData = [
       {
         name: 'Field Sport Compound',
         code: 'FSC',
@@ -88,24 +98,31 @@ export class FABPRotaSeeder extends Seeder {
       },
     ];
 
-    const createdBowCategories: BowCategory[] = [];
-    for (const cat of bowCategories) {
-      const bowCategory = em.create(BowCategory, {
-        name: cat.name,
-        code: cat.code,
-        descriptionEn: cat.descriptionEn,
-        rule: fabpRule,
-      });
-      createdBowCategories.push(bowCategory);
+    let categoriesCreated = 0;
+    for (const cat of bowCategoriesData) {
+      const existing = await em.findOne(BowCategory, { code: cat.code });
+      if (!existing) {
+        const bowCategory = em.create(BowCategory, {
+          name: cat.name,
+          code: cat.code,
+          descriptionEn: cat.descriptionEn,
+          rule: fabpRule,
+        });
+        await em.persistAndFlush(bowCategory);
+        categoriesCreated++;
+      }
     }
+    console.log(
+      `✅ ${categoriesCreated} new Bow Categories created (${bowCategoriesData.length - categoriesCreated} already existed)`,
+    );
 
-    await em.persistAndFlush(createdBowCategories);
-    console.log(`✅ ${createdBowCategories.length} Bow Categories created`);
+    const totalDivisions = await em.count(Division, { rule: fabpRule });
+    const totalCategories = await em.count(BowCategory, { rule: fabpRule });
 
     console.log('\n🎉 FABP Rota dos Castelos seeding completed!');
     console.log('\n📊 Summary:');
     console.log(`   • Rule: ${fabpRule.ruleName}`);
-    console.log(`   • Divisions: ${createdDivisions.length}`);
-    console.log(`   • Bow Categories: ${createdBowCategories.length}`);
+    console.log(`   • Total Divisions: ${totalDivisions}`);
+    console.log(`   • Total Bow Categories: ${totalCategories}`);
   }
 }

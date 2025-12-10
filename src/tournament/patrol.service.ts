@@ -42,22 +42,75 @@ export class PatrolService {
     return patrol;
   }
 
-  async findAll(): Promise<Patrol[]> {
-    return this.em.find(
+  async findAll(): Promise<any[]> {
+    const patrols = await this.em.find(
       Patrol,
       {},
       {
-        populate: ['leader', 'members', 'tournament'],
+        populate: ['leader', 'leader.club', 'tournament'],
       },
     );
+
+    // Get all patrol members separately to avoid circular references
+    const allMembers = await this.em.find(
+      PatrolMember,
+      { patrol: { $in: patrols.map((p) => p.id) } },
+      { populate: ['user', 'user.club'] },
+    );
+
+    return patrols.map((patrol) => {
+      const members = allMembers
+        .filter((m) => {
+          const patrolId =
+            typeof m.patrol === 'string' ? m.patrol : m.patrol.id;
+          return patrolId === patrol.id;
+        })
+        .map((m) => ({
+          id: m.id,
+          role: m.role,
+          user: {
+            id: m.user.id,
+            firstName: m.user.firstName,
+            lastName: m.user.lastName,
+            email: m.user.email,
+            gender: m.user.gender || 'Other',
+            club: m.user.club
+              ? { id: m.user.club.id, name: m.user.club.name }
+              : null,
+          },
+        }));
+
+      return {
+        id: patrol.id,
+        name: patrol.name,
+        description: patrol.description,
+        tournament: {
+          id: patrol.tournament.id,
+          title: patrol.tournament.title,
+        },
+        leader: {
+          id: patrol.leader.id,
+          firstName: patrol.leader.firstName,
+          lastName: patrol.leader.lastName,
+          email: patrol.leader.email,
+          gender: patrol.leader.gender || 'Other',
+          club: patrol.leader.club
+            ? { id: patrol.leader.club.id, name: patrol.leader.club.name }
+            : null,
+        },
+        members,
+        createdAt: patrol.createdAt,
+        updatedAt: patrol.updatedAt,
+      };
+    });
   }
 
-  async findById(id: string): Promise<Patrol> {
+  async findById(id: string): Promise<any> {
     const patrol = await this.em.findOne(
       Patrol,
       { id },
       {
-        populate: ['leader', 'members', 'tournament'],
+        populate: ['leader', 'leader.club', 'tournament'],
       },
     );
 
@@ -65,32 +118,167 @@ export class PatrolService {
       throw new NotFoundException('Patrol not found');
     }
 
-    return patrol;
+    // Get members separately
+    const members = await this.em.find(
+      PatrolMember,
+      { patrol: { id } },
+      { populate: ['user', 'user.club'] },
+    );
+
+    return {
+      id: patrol.id,
+      name: patrol.name,
+      description: patrol.description,
+      tournament: {
+        id: patrol.tournament.id,
+        title: patrol.tournament.title,
+      },
+      leader: {
+        id: patrol.leader.id,
+        firstName: patrol.leader.firstName,
+        lastName: patrol.leader.lastName,
+        email: patrol.leader.email,
+        gender: patrol.leader.gender || 'Other',
+        club: patrol.leader.club
+          ? { id: patrol.leader.club.id, name: patrol.leader.club.name }
+          : null,
+      },
+      members: members.map((m) => ({
+        id: m.id,
+        role: m.role,
+        user: {
+          id: m.user.id,
+          firstName: m.user.firstName,
+          lastName: m.user.lastName,
+          email: m.user.email,
+          gender: m.user.gender || 'Other',
+          club: m.user.club
+            ? { id: m.user.club.id, name: m.user.club.name }
+            : null,
+        },
+      })),
+      createdAt: patrol.createdAt,
+      updatedAt: patrol.updatedAt,
+    };
   }
 
-  async findByTournament(tournamentId: string): Promise<Patrol[]> {
-    return this.em.find(
+  async findByTournament(tournamentId: string): Promise<any[]> {
+    const patrols = await this.em.find(
       Patrol,
       { tournament: tournamentId },
       {
-        populate: ['leader', 'members'],
+        populate: ['leader', 'leader.club', 'tournament'],
       },
     );
+
+    // Get all patrol members separately
+    const allMembers = await this.em.find(
+      PatrolMember,
+      { patrol: { $in: patrols.map((p) => p.id) } },
+      { populate: ['user', 'user.club'] },
+    );
+
+    // Get all user IDs from patrol members
+    const allUserIds = new Set<string>();
+    allMembers.forEach((m) => allUserIds.add(m.user.id));
+    patrols.forEach((p) => allUserIds.add(p.leader.id));
+
+    // Fetch applications to get division and bow category info for each user
+    const applications = await this.em.find(
+      TournamentApplication,
+      {
+        tournament: { id: tournamentId },
+        applicant: { id: { $in: Array.from(allUserIds) } },
+        status: ApplicationStatus.APPROVED,
+      },
+      { populate: ['division', 'bowCategory', 'applicant'] },
+    );
+
+    // Build maps of userId -> division name and userId -> bow category
+    const userDivisionMap = new Map<string, string>();
+    const userBowCategoryMap = new Map<string, string>();
+    applications.forEach((app) => {
+      userDivisionMap.set(app.applicant.id, app.division?.name || 'Unknown');
+      userBowCategoryMap.set(
+        app.applicant.id,
+        app.bowCategory?.code || app.bowCategory?.name || 'Unknown',
+      );
+    });
+
+    return patrols.map((patrol) => {
+      const members = allMembers
+        .filter((m) => {
+          const patrolId =
+            typeof m.patrol === 'string' ? m.patrol : m.patrol.id;
+          return patrolId === patrol.id;
+        })
+        .map((m) => ({
+          id: m.id,
+          role: m.role,
+          user: {
+            id: m.user.id,
+            firstName: m.user.firstName,
+            lastName: m.user.lastName,
+            email: m.user.email,
+            gender: m.user.gender || 'Other',
+            division: userDivisionMap.get(m.user.id) || 'Unknown',
+            bowCategory: userBowCategoryMap.get(m.user.id) || 'Unknown',
+            club: m.user.club
+              ? { id: m.user.club.id, name: m.user.club.name }
+              : null,
+          },
+        }));
+
+      return {
+        id: patrol.id,
+        name: patrol.name,
+        description: patrol.description,
+        tournament: {
+          id: patrol.tournament.id,
+          title: patrol.tournament.title,
+        },
+        leader: {
+          id: patrol.leader.id,
+          firstName: patrol.leader.firstName,
+          lastName: patrol.leader.lastName,
+          email: patrol.leader.email,
+          gender: patrol.leader.gender || 'Other',
+          division: userDivisionMap.get(patrol.leader.id) || 'Unknown',
+          bowCategory: userBowCategoryMap.get(patrol.leader.id) || 'Unknown',
+          club: patrol.leader.club
+            ? { id: patrol.leader.club.id, name: patrol.leader.club.name }
+            : null,
+        },
+        members,
+        createdAt: patrol.createdAt,
+        updatedAt: patrol.updatedAt,
+      };
+    });
   }
 
-  async update(id: string, data: Partial<Patrol>): Promise<Patrol> {
-    const patrol = await this.findById(id);
+  async update(id: string, data: Partial<Patrol>): Promise<any> {
+    const patrolEntity = await this.em.findOne(Patrol, { id });
+    if (!patrolEntity) {
+      throw new NotFoundException('Patrol not found');
+    }
 
-    Object.assign(patrol, data);
-    patrol.updatedAt = new Date();
+    Object.assign(patrolEntity, data);
+    patrolEntity.updatedAt = new Date();
 
-    await this.em.persistAndFlush(patrol);
-    return patrol;
+    await this.em.persistAndFlush(patrolEntity);
+    return this.findById(id);
   }
 
   async remove(id: string): Promise<void> {
-    const patrol = await this.findById(id);
-    await this.em.removeAndFlush(patrol);
+    const patrolEntity = await this.em.findOne(Patrol, { id });
+    if (!patrolEntity) {
+      throw new NotFoundException('Patrol not found');
+    }
+
+    // Delete patrol members first
+    await this.em.nativeDelete(PatrolMember, { patrol: id });
+    // Delete the patrol
+    await this.em.removeAndFlush(patrolEntity);
   }
 
   async addMember(
@@ -189,7 +377,7 @@ export class PatrolService {
   async saveGeneratedPatrols(
     tournamentId: string,
     generatedPatrols: PatrolGenerationResult,
-  ): Promise<Patrol[]> {
+  ): Promise<any[]> {
     const tournament = await this.em.findOne(Tournament, { id: tournamentId });
     if (!tournament) {
       throw new NotFoundException(
@@ -197,13 +385,17 @@ export class PatrolService {
       );
     }
 
-    const savedPatrols: Patrol[] = [];
+    const savedPatrolIds: string[] = [];
 
     for (const generatedPatrol of generatedPatrols.patrols) {
       // Find leader and members
-      const leader = await this.em.findOne(User, {
-        id: generatedPatrol.leaderId,
-      });
+      const leader = await this.em.findOne(
+        User,
+        {
+          id: generatedPatrol.leaderId,
+        },
+        { populate: ['club'] },
+      );
       if (!leader) {
         throw new NotFoundException(
           `Leader with ID ${generatedPatrol.leaderId} not found`,
@@ -236,10 +428,11 @@ export class PatrolService {
         await this.addMember(patrol.id, memberId, role);
       }
 
-      savedPatrols.push(patrol);
+      savedPatrolIds.push(patrol.id);
     }
 
-    return savedPatrols;
+    // Fetch and return saved patrols as plain objects
+    return this.findByTournament(tournamentId);
   }
 
   /**
@@ -339,10 +532,10 @@ export class PatrolService {
         name:
           `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
         club: user.club?.name || 'No Club',
-        bowCategory: app?.bowCategory?.name || 'Unknown',
-        division: app?.division?.name || 'Unknown',
-        gender: user.gender || 'Other',
-        escalao: app?.division?.name || 'Unknown',
+        bowCategory: app?.bowCategory?.code || app?.bowCategory?.name || '-',
+        division: app?.division?.name || '-',
+        gender: user.gender || '-',
+        escalao: app?.division?.name || '-',
       };
     });
 

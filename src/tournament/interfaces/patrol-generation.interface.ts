@@ -44,6 +44,7 @@ export interface PatrolGenerationStats {
   averagePatrolSize: number;
   clubDiversityScore: number; // % of patrols with judges from different clubs
   homogeneityScores: {
+    category: number; // % of patrols where all have the same bow category
     division: number; // % of patrols where all have the same division
     gender: number; // % of patrols where all have the same gender
   };

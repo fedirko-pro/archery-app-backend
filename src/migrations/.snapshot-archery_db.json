@@ -669,8 +669,8 @@
           "length": 255,
           "mappedType": "string"
         },
-        "sex": {
-          "name": "sex",
+        "gender": {
+          "name": "gender",
           "type": "varchar(255)",
           "unsigned": false,
           "autoincrement": false,
@@ -678,6 +678,15 @@
           "nullable": true,
           "length": 255,
           "mappedType": "string"
+        },
+        "categories": {
+          "name": "categories",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
         },
         "club_id": {
           "name": "club_id",

@@ -8,10 +8,37 @@ import {
 } from './interfaces/patrol-generation.interface';
 import { v4 as uuid } from 'uuid';
 
+/**
+ * Patrol Generation Service
+ *
+ * Generates optimal patrol groupings for archery tournaments.
+ *
+ * ## Algorithm Overview
+ *
+ * 1. **Group by Bow Category** - Primary grouping criterion (RC, CP, LB, etc.)
+ * 2. **Calculate Target Sizes** - Based on participant count and target patrol count
+ * 3. **Form Initial Patrols** - Create patrols from category groups
+ * 4. **Adjust to Target Count** - Merge/split to reach desired patrol count
+ * 5. **Balance Sizes** - Even out patrol sizes (max difference of 2)
+ * 6. **Balance Clubs** - Ensure judges come from different clubs when possible
+ * 7. **Assign Roles** - 1 leader + 2 judges per patrol
+ * 8. **Calculate Stats** - Quality metrics for the distribution
+ *
+ * ## Priority System (when moving participants between patrols)
+ * - Bow Category match: 10 points (highest)
+ * - Division match: 3 points
+ * - Gender match: 1 point
+ *
+ * ## Statistics Returned
+ * - `categoryHomogeneity`: % of patrols where all have same bow category
+ * - `clubDiversityScore`: % of patrols with judges from different clubs
+ * - `divisionHomogeneity`: % of patrols where all have same division
+ * - `genderHomogeneity`: % of patrols where all have same gender
+ */
 @Injectable()
 export class PatrolGenerationService {
   /**
-   * Main function to generate patrols
+   * Main function to generate patrols from participant entries
    */
   generatePatrols(
     entries: PatrolEntry[],
@@ -24,8 +51,8 @@ export class PatrolGenerationService {
       };
     }
 
-    // 1. GROUP BY SIMILARITY (division + gender)
-    const groups = this.groupBySimilarity(entries);
+    // 1. GROUP BY BOW CATEGORY (primary grouping)
+    const groups = this.groupByBowCategory(entries);
 
     // 2. CALCULATE TARGET SIZES
     const avgSize = Math.ceil(entries.length / config.targetPatrolCount);
@@ -41,10 +68,9 @@ export class PatrolGenerationService {
       config.targetPatrolCount,
       minSize,
       maxSize,
-      entries,
     );
 
-    // 5. BALANCE PATROL SIZES
+    // 5. BALANCE PATROL SIZES (preserving bow category when possible)
     patrols = this.balancePatrolSizes(patrols, minSize, maxSize, entries);
 
     // 6. BALANCE CLUBS (best effort)
@@ -63,19 +89,31 @@ export class PatrolGenerationService {
   }
 
   /**
-   * Step 1: Group entries by similarity (division + gender)
+   * Step 1: Group entries by bow category (primary grouping criterion)
+   * This ensures participants with the same bow category are grouped together
    */
-  private groupBySimilarity(
+  private groupByBowCategory(
     entries: PatrolEntry[],
   ): Map<string, PatrolEntry[]> {
     const groups = new Map<string, PatrolEntry[]>();
 
     for (const entry of entries) {
-      const key = `${entry.division}|${entry.gender}`;
+      // Primary grouping by bow category
+      const key = entry.bowCategory || 'Unknown';
       if (!groups.has(key)) {
         groups.set(key, []);
       }
       groups.get(key)!.push(entry);
+    }
+
+    // Sort entries within each group by division+gender for better sub-grouping
+    for (const [key, groupEntries] of groups) {
+      groupEntries.sort((a, b) => {
+        const keyA = `${a.division}|${a.gender}`;
+        const keyB = `${b.division}|${b.gender}`;
+        return keyA.localeCompare(keyB);
+      });
+      groups.set(key, groupEntries);
     }
 
     return groups;
@@ -106,14 +144,13 @@ export class PatrolGenerationService {
 
   /**
    * Step 4: Adjust number of patrols to target count
+   * Merges smaller patrols if we have too many, splits larger ones if too few
    */
   private adjustToTargetCount(
     patrols: string[][],
     targetCount: number,
     minSize: number,
     maxSize: number,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _entries: PatrolEntry[],
   ): string[][] {
     // If we have more patrols than needed, merge smaller ones
     while (patrols.length > targetCount) {
@@ -227,6 +264,7 @@ export class PatrolGenerationService {
 
   /**
    * Find the best person to move from source to target patrol
+   * Prioritizes bow category matching, then division, then gender
    */
   private findBestCandidateForMove(
     sourcePatrol: string[],
@@ -234,6 +272,9 @@ export class PatrolGenerationService {
     entries: PatrolEntry[],
   ): string | null {
     // Get patrol characteristics
+    const targetCategories = targetPatrol
+      .map((id) => entries.find((e) => e.participantId === id)?.bowCategory)
+      .filter(Boolean);
     const targetDivisions = targetPatrol
       .map((id) => entries.find((e) => e.participantId === id)?.division)
       .filter(Boolean);
@@ -241,6 +282,7 @@ export class PatrolGenerationService {
       .map((id) => entries.find((e) => e.participantId === id)?.gender)
       .filter(Boolean);
 
+    const commonCategory = this.getMostCommon(targetCategories);
     const commonDivision = this.getMostCommon(targetDivisions);
     const commonGender = this.getMostCommon(targetGenders);
 
@@ -252,8 +294,12 @@ export class PatrolGenerationService {
       if (!entry) continue;
 
       let score = 0;
-      if (entry.division === commonDivision) score += 5;
-      if (entry.gender === commonGender) score += 2;
+      // Bow category has highest priority (10 points)
+      if (entry.bowCategory === commonCategory) score += 10;
+      // Division has medium priority (3 points)
+      if (entry.division === commonDivision) score += 3;
+      // Gender has lower priority (1 point)
+      if (entry.gender === commonGender) score += 1;
 
       if (score > bestScore) {
         bestScore = score;
@@ -353,13 +399,16 @@ export class PatrolGenerationService {
   /**
    * Step 7: Assign roles (leader and judges)
    */
+  /**
+   * Step 7: Assign roles (leader and judges) to each patrol
+   */
   private assignRoles(
     patrols: string[][],
     entries: PatrolEntry[],
   ): GeneratedPatrol[] {
     return patrols.map((members, index) => {
       const judges = this.selectJudges(members, entries);
-      const leaderId = this.selectLeader(members, judges, entries);
+      const leaderId = this.selectLeader(members, judges);
 
       return {
         id: uuid(),
@@ -410,12 +459,7 @@ export class PatrolGenerationService {
   /**
    * Select a leader (random member excluding judges)
    */
-  private selectLeader(
-    members: string[],
-    judges: [string, string],
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _entries: PatrolEntry[],
-  ): string {
+  private selectLeader(members: string[], judges: [string, string]): string {
     const availableMembers = members.filter((m) => !judges.includes(m));
 
     if (availableMembers.length > 0) {
@@ -458,6 +502,19 @@ export class PatrolGenerationService {
     }
     const clubDiversityScore = (diversePatrols / patrols.length) * 100;
 
+    // Bow category homogeneity (most important metric now)
+    let homogeneousCategoryPatrols = 0;
+    for (const patrol of patrols) {
+      const categories = patrol.members.map(
+        (id) => entries.find((e) => e.participantId === id)?.bowCategory,
+      );
+      if (new Set(categories).size === 1) {
+        homogeneousCategoryPatrols++;
+      }
+    }
+    const categoryHomogeneity =
+      (homogeneousCategoryPatrols / patrols.length) * 100;
+
     // Division homogeneity
     let homogeneousDivisionPatrols = 0;
     for (const patrol of patrols) {
@@ -488,6 +545,7 @@ export class PatrolGenerationService {
       averagePatrolSize,
       clubDiversityScore,
       homogeneityScores: {
+        category: categoryHomogeneity,
         division: divisionHomogeneity,
         gender: genderHomogeneity,
       },
@@ -540,6 +598,7 @@ export class PatrolGenerationService {
       averagePatrolSize: 0,
       clubDiversityScore: 0,
       homogeneityScores: {
+        category: 0,
         division: 0,
         gender: 0,
       },

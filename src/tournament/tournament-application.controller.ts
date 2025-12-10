@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { wrap } from '@mikro-orm/core';
 import { TournamentApplicationService } from './tournament-application.service';
 import { ApplicationStatus } from './tournament-application.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -45,14 +46,71 @@ export class TournamentApplicationController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRoles.Admin)
   async findAll() {
-    return this.applicationService.findAll();
+    const applications = await this.applicationService.findAll();
+    // Serialize to plain JSON to avoid class-transformer issues
+    return applications.map((app) => {
+      const json: any = wrap(app).toJSON();
+      return {
+        ...json,
+        applicant: {
+          id: app.applicant.id,
+          firstName: app.applicant.firstName,
+          lastName: app.applicant.lastName,
+          email: app.applicant.email,
+          picture: app.applicant.picture,
+          gender: app.applicant.gender,
+        },
+        division: app.division
+          ? {
+              id: app.division.id,
+              name: app.division.name,
+            }
+          : null,
+        bowCategory: app.bowCategory
+          ? {
+              id: app.bowCategory.id,
+              name: app.bowCategory.name,
+              code: app.bowCategory.code,
+            }
+          : null,
+      };
+    });
   }
 
   @Get('tournament/:tournamentId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRoles.Admin)
   async findByTournament(@Param('tournamentId') tournamentId: string) {
-    return this.applicationService.findByTournament(tournamentId);
+    const applications =
+      await this.applicationService.findByTournament(tournamentId);
+    // Serialize to plain JSON to avoid class-transformer issues
+    return applications.map((app) => {
+      const json: any = wrap(app).toJSON();
+      return {
+        ...json,
+        applicant: {
+          id: app.applicant.id,
+          firstName: app.applicant.firstName,
+          lastName: app.applicant.lastName,
+          email: app.applicant.email,
+          picture: app.applicant.picture,
+          gender: app.applicant.gender,
+        },
+        division: app.division
+          ? {
+              id: app.division.id,
+              name: app.division.name,
+            }
+          : null,
+        bowCategory: app.bowCategory
+          ? {
+              id: app.bowCategory.id,
+              name: app.bowCategory.name,
+              code: app.bowCategory.code,
+            }
+          : null,
+      };
+    });
   }
 
   @Get('tournament/:tournamentId/stats')

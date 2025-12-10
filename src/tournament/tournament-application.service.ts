@@ -109,7 +109,7 @@ export class TournamentApplicationService {
       TournamentApplication,
       {},
       {
-        populate: ['tournament', 'applicant'],
+        populate: ['tournament', 'applicant', 'division', 'bowCategory'],
       },
     );
   }
@@ -123,7 +123,7 @@ export class TournamentApplicationService {
         tournament: { id: tournamentId },
       },
       {
-        populate: ['applicant'],
+        populate: ['applicant', 'division', 'bowCategory'],
       },
     );
   }

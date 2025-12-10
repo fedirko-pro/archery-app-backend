@@ -246,8 +246,49 @@ export class UserService {
     await this.entityManager.persistAndFlush(user);
   }
 
-  async getAllUsers(): Promise<User[]> {
-    return this.entityManager.find(User, {});
+  async getAllUsers(): Promise<any[]> {
+    const em = this.entityManager.fork();
+
+    // Load users and clubs separately to avoid lazy loading issues
+    const users = await em.find(
+      User,
+      {},
+      { orderBy: { firstName: 'ASC', lastName: 'ASC' } },
+    );
+
+    // Get all unique club IDs (filter out undefined)
+    const clubIds = [
+      ...new Set(
+        users.map((u) => u.club?.id).filter((id): id is string => !!id),
+      ),
+    ];
+
+    // Load all clubs at once
+    const clubs =
+      clubIds.length > 0 ? await em.find(Club, { id: { $in: clubIds } }) : [];
+
+    // Create club lookup map
+    const clubMap = new Map(clubs.map((c) => [c.id, c]));
+
+    // Transform to plain objects with club data
+    return users.map((user) => {
+      const club = user.club ? clubMap.get(user.club.id) : null;
+      return {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        picture: user.picture,
+        gender: user.gender,
+        nationality: user.nationality,
+        federationNumber: user.federationNumber,
+        authProvider: user.authProvider,
+        createdAt: user.createdAt,
+        categories: user.categories || [],
+        club: club ? { id: club.id, name: club.name } : null,
+      };
+    });
   }
 
   async adminUpdateUser(

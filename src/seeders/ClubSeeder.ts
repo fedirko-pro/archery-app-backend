@@ -42,6 +42,41 @@ export class ClubSeeder extends Seeder {
         location: 'Kharkiv, Ukraine',
         clubLogo: 'https://i.pravatar.cc/300?img=5',
       },
+      {
+        name: 'Lisbon Archery Center',
+        description:
+          'Modern archery facility in Lisbon with indoor and outdoor ranges. Home to national team training sessions.',
+        location: 'Lisbon, Portugal',
+        clubLogo: 'https://i.pravatar.cc/300?img=6',
+      },
+      {
+        name: 'Porto Field Archers',
+        description:
+          'Specialized in field archery and nature courses. Experience archery in the beautiful Portuguese countryside.',
+        location: 'Porto, Portugal',
+        clubLogo: 'https://i.pravatar.cc/300?img=7',
+      },
+      {
+        name: 'Coimbra University Archery',
+        description:
+          'University archery club open to students and community. Combining academic excellence with sporting achievement.',
+        location: 'Coimbra, Portugal',
+        clubLogo: 'https://i.pravatar.cc/300?img=8',
+      },
+      {
+        name: 'Algarve Coastal Archers',
+        description:
+          'Seaside archery club with stunning ocean views. Specializing in outdoor competitions and beach archery events.',
+        location: 'Faro, Portugal',
+        clubLogo: 'https://i.pravatar.cc/300?img=9',
+      },
+      {
+        name: 'Braga Historic Bowmen',
+        description:
+          'Traditional and medieval archery enthusiasts. Preserving the heritage of Portuguese archery traditions.',
+        location: 'Braga, Portugal',
+        clubLogo: 'https://i.pravatar.cc/300?img=10',
+      },
     ];
 
     for (const clubData of clubs) {

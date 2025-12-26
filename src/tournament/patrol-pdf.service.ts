@@ -135,7 +135,21 @@ export class PatrolPdfService {
     patrol: GeneratedPatrol,
     entries: PatrolEntry[],
   ): void {
-    const members = patrol.members;
+    // Sort members: leader first, then judges, then others
+    const members = [...patrol.members].sort((a, b) => {
+      // Leader first
+      if (a === patrol.leaderId) return -1;
+      if (b === patrol.leaderId) return 1;
+
+      // Judges next
+      const aIsJudge = patrol.judgeIds.includes(a);
+      const bIsJudge = patrol.judgeIds.includes(b);
+      if (aIsJudge && !bIsJudge) return -1;
+      if (!aIsJudge && bIsJudge) return 1;
+
+      // Keep original order for others
+      return 0;
+    });
     const startX = 30;
 
     // Check if we need a new page

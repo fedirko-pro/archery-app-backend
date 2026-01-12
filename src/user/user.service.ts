@@ -13,6 +13,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { Roles } from './types';
 import bcrypt from 'bcryptjs';
 import { UploadService } from '../upload/upload.service';
+import { Club } from '../club/club.entity';
 
 @Injectable()
 export class UserService {
@@ -65,7 +66,7 @@ export class UserService {
   }
 
   async findById(id: string): Promise<User | null> {
-    return this.entityManager.findOne(User, { id });
+    return this.entityManager.findOne(User, { id }, { populate: ['club'] });
   }
 
   async update(
@@ -88,6 +89,22 @@ export class UserService {
     delete (safeUpdate as any).role;
     if (!isAdmin) {
       delete (safeUpdate as any).email;
+    }
+
+    // Handle clubId separately
+    if ('clubId' in safeUpdate) {
+      const clubId = safeUpdate.clubId as string | undefined;
+      delete (safeUpdate as any).clubId;
+
+      if (clubId && clubId.trim() !== '') {
+        const club = await this.entityManager.findOne(Club, { id: clubId });
+        if (!club) {
+          throw new NotFoundException(`Club with id ${clubId} not found`);
+        }
+        user.club = club;
+      } else {
+        user.club = undefined;
+      }
     }
 
     Object.assign(user, safeUpdate);
@@ -229,8 +246,49 @@ export class UserService {
     await this.entityManager.persistAndFlush(user);
   }
 
-  async getAllUsers(): Promise<User[]> {
-    return this.entityManager.find(User, {});
+  async getAllUsers(): Promise<any[]> {
+    const em = this.entityManager.fork();
+
+    // Load users and clubs separately to avoid lazy loading issues
+    const users = await em.find(
+      User,
+      {},
+      { orderBy: { firstName: 'ASC', lastName: 'ASC' } },
+    );
+
+    // Get all unique club IDs (filter out undefined)
+    const clubIds = [
+      ...new Set(
+        users.map((u) => u.club?.id).filter((id): id is string => !!id),
+      ),
+    ];
+
+    // Load all clubs at once
+    const clubs =
+      clubIds.length > 0 ? await em.find(Club, { id: { $in: clubIds } }) : [];
+
+    // Create club lookup map
+    const clubMap = new Map(clubs.map((c) => [c.id, c]));
+
+    // Transform to plain objects with club data
+    return users.map((user) => {
+      const club = user.club ? clubMap.get(user.club.id) : null;
+      return {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        picture: user.picture,
+        gender: user.gender,
+        nationality: user.nationality,
+        federationNumber: user.federationNumber,
+        authProvider: user.authProvider,
+        createdAt: user.createdAt,
+        categories: user.categories || [],
+        club: club ? { id: club.id, name: club.name } : null,
+      };
+    });
   }
 
   async adminUpdateUser(
@@ -250,7 +308,30 @@ export class UserService {
       }
     }
 
-    Object.assign(user, updateData);
+    const safeUpdate: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(updateData as any)) {
+      if (value !== undefined) {
+        safeUpdate[key] = value;
+      }
+    }
+
+    // Handle clubId separately
+    if ('clubId' in safeUpdate) {
+      const clubId = safeUpdate.clubId as string | undefined;
+      delete (safeUpdate as any).clubId;
+
+      if (clubId && clubId.trim() !== '') {
+        const club = await this.entityManager.findOne(Club, { id: clubId });
+        if (!club) {
+          throw new NotFoundException(`Club with id ${clubId} not found`);
+        }
+        user.club = club;
+      } else {
+        user.club = undefined;
+      }
+    }
+
+    Object.assign(user, safeUpdate);
     user.updatedAt = new Date();
 
     await this.entityManager.persistAndFlush(user);

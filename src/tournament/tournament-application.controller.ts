@@ -1,4 +1,15 @@
-import { Controller, Post, Body, Get, Put, Delete, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Put,
+  Delete,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
+import { wrap } from '@mikro-orm/core';
 import { TournamentApplicationService } from './tournament-application.service';
 import { ApplicationStatus } from './tournament-application.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -8,20 +19,26 @@ import { Roles as UserRoles } from '../user/types';
 
 @Controller('tournament-applications')
 export class TournamentApplicationController {
-  constructor(private readonly applicationService: TournamentApplicationService) {}
+  constructor(
+    private readonly applicationService: TournamentApplicationService,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  async create(@Body() data: {
-    tournamentId: string;
-    category?: string;
-    division?: string;
-    equipment?: string;
-    notes?: string;
-  }, @Request() req: any) {
+  async create(
+    @Body()
+    data: {
+      tournamentId: string;
+      category?: string;
+      division?: string;
+      equipment?: string;
+      notes?: string;
+    },
+    @Request() req: any,
+  ) {
     return this.applicationService.create({
       ...data,
-      applicantId: req.user.sub
+      applicantId: req.user.sub,
     });
   }
 
@@ -29,14 +46,71 @@ export class TournamentApplicationController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRoles.Admin)
   async findAll() {
-    return this.applicationService.findAll();
+    const applications = await this.applicationService.findAll();
+    // Serialize to plain JSON to avoid class-transformer issues
+    return applications.map((app) => {
+      const json: any = wrap(app).toJSON();
+      return {
+        ...json,
+        applicant: {
+          id: app.applicant.id,
+          firstName: app.applicant.firstName,
+          lastName: app.applicant.lastName,
+          email: app.applicant.email,
+          picture: app.applicant.picture,
+          gender: app.applicant.gender,
+        },
+        division: app.division
+          ? {
+              id: app.division.id,
+              name: app.division.name,
+            }
+          : null,
+        bowCategory: app.bowCategory
+          ? {
+              id: app.bowCategory.id,
+              name: app.bowCategory.name,
+              code: app.bowCategory.code,
+            }
+          : null,
+      };
+    });
   }
 
   @Get('tournament/:tournamentId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRoles.Admin)
   async findByTournament(@Param('tournamentId') tournamentId: string) {
-    return this.applicationService.findByTournament(tournamentId);
+    const applications =
+      await this.applicationService.findByTournament(tournamentId);
+    // Serialize to plain JSON to avoid class-transformer issues
+    return applications.map((app) => {
+      const json: any = wrap(app).toJSON();
+      return {
+        ...json,
+        applicant: {
+          id: app.applicant.id,
+          firstName: app.applicant.firstName,
+          lastName: app.applicant.lastName,
+          email: app.applicant.email,
+          picture: app.applicant.picture,
+          gender: app.applicant.gender,
+        },
+        division: app.division
+          ? {
+              id: app.division.id,
+              name: app.division.name,
+            }
+          : null,
+        bowCategory: app.bowCategory
+          ? {
+              id: app.bowCategory.id,
+              name: app.bowCategory.name,
+              code: app.bowCategory.code,
+            }
+          : null,
+      };
+    });
   }
 
   @Get('tournament/:tournamentId/stats')
@@ -63,9 +137,15 @@ export class TournamentApplicationController {
   @Roles(UserRoles.Admin)
   async updateStatus(
     @Param('id') id: string,
-    @Body() data: { status: ApplicationStatus; rejectionReason?: string }
+    @Body() data: { status: ApplicationStatus; rejectionReason?: string },
+    @Request() req: any,
   ) {
-    return this.applicationService.updateStatus(id, data.status, data.rejectionReason);
+    return this.applicationService.updateStatus(
+      id,
+      data.status,
+      data.rejectionReason,
+      req.user.sub, // Pass admin user ID for audit trail
+    );
   }
 
   @Delete(':id')
@@ -80,4 +160,4 @@ export class TournamentApplicationController {
   async remove(@Param('id') id: string) {
     return this.applicationService.remove(id);
   }
-} 
+}

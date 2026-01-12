@@ -9,8 +9,8 @@ import {
 import { Type } from 'class-transformer';
 
 export class UploadImageDto {
-  @IsEnum(['avatar', 'banner'])
-  type: 'avatar' | 'banner';
+  @IsEnum(['avatar', 'banner', 'logo'])
+  type: 'avatar' | 'banner' | 'logo';
 
   @IsString()
   entityId: string;

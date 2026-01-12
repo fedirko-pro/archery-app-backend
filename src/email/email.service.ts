@@ -159,20 +159,112 @@ export class EmailService {
 
     const text = `
       Welcome to Archery App!
-      
+
       Hello ${firstName},
-      
+
       Thank you for joining our archery community! We're excited to have you on board.
-      
+
       You can now:
       - Complete your profile
       - Join competitions
       - Track your progress
       - Connect with other archers
-      
+
       If you have any questions, feel free to reach out to our support team.
-      
+
       Welcome to the archery community!
+    `;
+
+    await this.sendEmail({
+      to: email,
+      subject,
+      html,
+      text,
+    });
+  }
+
+  async sendApplicationStatusEmail(
+    email: string,
+    applicantName: string,
+    tournamentTitle: string,
+    status: 'approved' | 'rejected',
+    rejectionReason?: string,
+  ): Promise<void> {
+    const subject =
+      status === 'approved'
+        ? `Application Approved - ${tournamentTitle}`
+        : `Application Update - ${tournamentTitle}`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: ${status === 'approved' ? '#28a745' : '#dc3545'};">
+          Tournament Application ${status === 'approved' ? 'Approved ✓' : 'Update'}
+        </h2>
+        <p>Hello ${applicantName},</p>
+        ${
+          status === 'approved'
+            ? `
+          <div style="background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0; color: #155724;">
+              <strong>Great news!</strong> Your application for <strong>${tournamentTitle}</strong> has been approved.
+            </p>
+          </div>
+          <p>You are now registered for this tournament. Please check your application details and prepare for the competition.</p>
+          <p>We look forward to seeing you there!</p>
+        `
+            : `
+          <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0; color: #721c24;">
+              Your application for <strong>${tournamentTitle}</strong> has been reviewed.
+            </p>
+          </div>
+          ${
+            rejectionReason
+              ? `
+            <p><strong>Feedback:</strong></p>
+            <div style="background-color: #f8f9fa; border-left: 4px solid #6c757d; padding: 12px; margin: 15px 0;">
+              ${rejectionReason}
+            </div>
+          `
+              : ''
+          }
+          <p>If you have any questions or concerns, please don't hesitate to contact us.</p>
+        `
+        }
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${this.configService.get<string>('FRONTEND_URL')}/my-applications"
+             style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            View My Applications
+          </a>
+        </div>
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        <p style="color: #666; font-size: 12px;">
+          This is an automated email. Please do not reply to this message.
+        </p>
+      </div>
+    `;
+
+    const text = `
+      Tournament Application ${status === 'approved' ? 'Approved' : 'Update'}
+
+      Hello ${applicantName},
+
+      ${
+        status === 'approved'
+          ? `Great news! Your application for ${tournamentTitle} has been approved.
+
+      You are now registered for this tournament. Please check your application details and prepare for the competition.
+
+      We look forward to seeing you there!`
+          : `Your application for ${tournamentTitle} has been reviewed.
+
+      ${rejectionReason ? `Feedback: ${rejectionReason}\n` : ''}
+      If you have any questions or concerns, please don't hesitate to contact us.`
+      }
+
+      View your applications: ${this.configService.get<string>('FRONTEND_URL')}/my-applications
+
+      This is an automated email. Please do not reply to this message.
     `;
 
     await this.sendEmail({

@@ -1,6 +1,7 @@
 import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
 import { v4 as uuid } from 'uuid';
 import { User } from '../user/entity/user.entity';
+import { Rule } from '../rule/rule.entity';
 
 @Entity()
 export class Tournament {
@@ -31,6 +32,9 @@ export class Tournament {
   @Property({ default: true })
   allowMultipleApplications: boolean = true;
 
+  @Property({ default: 18 })
+  targetCount: number = 18; // Number of targets/patrols
+
   @Property({ nullable: true })
   banner?: string;
 
@@ -46,6 +50,9 @@ export class Tournament {
 
   @ManyToOne(() => User)
   createdBy: User;
+
+  @ManyToOne(() => Rule, { nullable: true })
+  rule?: Rule;
 
   // @OneToMany(() => Patrol, (patrol) => patrol.tournament)
   // patrols = [];

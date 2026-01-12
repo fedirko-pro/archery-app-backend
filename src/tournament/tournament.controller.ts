@@ -31,19 +31,30 @@ export class TournamentController {
   async findAll() {
     const tournaments = await this.tournamentService.findAll();
     // Serialize to plain JSON to avoid class-transformer issues with Patrol class
-    return tournaments.map((t) => ({
-      ...t,
-      createdBy: t.createdBy
-        ? {
-            id: t.createdBy.id,
-            email: t.createdBy.email,
-            firstName: t.createdBy.firstName,
-            lastName: t.createdBy.lastName,
-            picture: t.createdBy.picture,
-            role: t.createdBy.role,
-          }
-        : null,
-    }));
+    return tournaments.map((t) => {
+      const json: any = wrap(t).toJSON();
+      return {
+        ...json,
+        ruleCode: t.rule?.ruleCode || null,
+        rule: t.rule
+          ? {
+              id: t.rule.id,
+              ruleCode: t.rule.ruleCode,
+              ruleName: t.rule.ruleName,
+            }
+          : null,
+        createdBy: t.createdBy
+          ? {
+              id: t.createdBy.id,
+              email: t.createdBy.email,
+              firstName: t.createdBy.firstName,
+              lastName: t.createdBy.lastName,
+              picture: t.createdBy.picture,
+              role: t.createdBy.role,
+            }
+          : null,
+      };
+    });
   }
 
   @Get(':id')
@@ -51,6 +62,8 @@ export class TournamentController {
     const tournament = await this.tournamentService.findById(id);
     // Serialize to plain JSON to avoid class-transformer issues
     const json: any = wrap(tournament).toJSON();
+    // Add ruleCode for convenience
+    json.ruleCode = tournament.rule?.ruleCode || null;
     return json;
   }
 

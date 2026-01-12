@@ -10,6 +10,10 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { envSchema } from './config/env.zod';
 import { TournamentModule } from './tournament/tournament.module';
 import { UploadModule } from './upload/upload.module';
+import { ClubModule } from './club/club.module';
+import { RuleModule } from './rule/rule.module';
+import { DivisionModule } from './division/division.module';
+import { BowCategoryModule } from './bow-category/bow-category.module';
 
 @Module({
   imports: [
@@ -32,6 +36,10 @@ import { UploadModule } from './upload/upload.module';
     EmailModule,
     TournamentModule,
     UploadModule,
+    ClubModule,
+    RuleModule,
+    DivisionModule,
+    BowCategoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

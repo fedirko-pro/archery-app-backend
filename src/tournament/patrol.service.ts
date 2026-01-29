@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import { Patrol } from './patrol.entity';
@@ -24,6 +25,8 @@ import { format } from 'date-fns';
 
 @Injectable()
 export class PatrolService {
+  private readonly logger = new Logger(PatrolService.name);
+
   constructor(
     private readonly em: EntityManager,
     private readonly patrolGenerationService: PatrolGenerationService,
@@ -335,20 +338,66 @@ export class PatrolService {
       );
     }
 
-    // 3. Transform applications to PatrolEntry format
-    const entries: PatrolEntry[] = applications.map((app) => {
+    // 3. Validate and transform applications to PatrolEntry format
+    const invalidApplications: string[] = [];
+    const entries: PatrolEntry[] = [];
+
+    for (const app of applications) {
+      if (!app.bowCategory) {
+        invalidApplications.push(`Application ${app.id}: Missing bow category`);
+        this.logger.warn(
+          `Application ${app.id} (user: ${app.applicant.email}) is missing bow category`,
+        );
+        continue;
+      }
+      if (!app.division) {
+        invalidApplications.push(`Application ${app.id}: Missing division`);
+        this.logger.warn(
+          `Application ${app.id} (user: ${app.applicant.email}) is missing division`,
+        );
+        continue;
+      }
+
       const user = app.applicant;
-      return {
+      const gender = user.gender?.toLowerCase() || 'other';
+      const normalizedGender: 'm' | 'f' | 'other' = [
+        'm',
+        'f',
+        'other',
+      ].includes(gender)
+        ? (gender as 'm' | 'f' | 'other')
+        : 'other';
+
+      entries.push({
         participantId: user.id,
         name:
           `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
         club: user.club?.name || 'No Club',
-        bowCategory: app.bowCategory?.name || 'Unknown',
-        division: app.division?.name || 'Unknown',
-        gender: user.gender || 'Other',
-        escalao: app.division?.name || 'Unknown',
-      };
-    });
+        bowCategory: app.bowCategory.code, // Use code, not name
+        division: app.division.name,
+        gender: normalizedGender,
+        escalao: app.division.name,
+      });
+    }
+
+    // Log validation results
+    if (invalidApplications.length > 0) {
+      this.logger.warn(
+        `Skipped ${invalidApplications.length} invalid applications: ${invalidApplications.join(', ')}`,
+      );
+    }
+
+    if (entries.length === 0) {
+      throw new BadRequestException(
+        'No valid applications found. All applications are missing required fields (bow category or division).',
+      );
+    }
+
+    if (entries.length < tournament.targetCount * 3) {
+      this.logger.warn(
+        `Low participant count (${entries.length}) for ${tournament.targetCount} targets. Minimum recommended: ${tournament.targetCount * 3}`,
+      );
+    }
 
     // 4. Configure generation (use targetCount from tournament)
     const config: PatrolGenerationConfig = {
@@ -363,12 +412,29 @@ export class PatrolService {
     };
 
     // 5. Generate patrols using the algorithm
-    const result = this.patrolGenerationService.generatePatrols(
-      entries,
-      config,
-    );
+    try {
+      const result = this.patrolGenerationService.generatePatrols(
+        entries,
+        config,
+      );
 
-    return result;
+      this.logger.log(
+        `Successfully generated ${result.patrols.length} patrols for tournament ${tournamentId}`,
+      );
+      this.logger.debug(
+        `Patrol generation stats: ${JSON.stringify(result.stats)}`,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `Failed to generate patrols for tournament ${tournamentId}: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException(
+        `Failed to generate patrols: ${error.message}`,
+      );
+    }
   }
 
   /**
@@ -527,6 +593,15 @@ export class PatrolService {
 
     const entries: PatrolEntry[] = users.map((user) => {
       const app = applications.find((a) => a.applicant.id === user.id);
+      const gender = user.gender?.toLowerCase() || 'other';
+      const normalizedGender: 'm' | 'f' | 'other' = [
+        'm',
+        'f',
+        'other',
+      ].includes(gender)
+        ? (gender as 'm' | 'f' | 'other')
+        : 'other';
+
       return {
         participantId: user.id,
         name:
@@ -534,7 +609,7 @@ export class PatrolService {
         club: user.club?.name || 'No Club',
         bowCategory: app?.bowCategory?.code || app?.bowCategory?.name || '-',
         division: app?.division?.name || '-',
-        gender: user.gender || '-',
+        gender: normalizedGender,
         escalao: app?.division?.name || '-',
       };
     });

@@ -51,6 +51,19 @@ export class PatrolGenerationService {
       };
     }
 
+    // Validate config
+    if (config.targetPatrolCount <= 0) {
+      throw new Error('targetPatrolCount must be greater than 0');
+    }
+    if (config.minPatrolSize <= 0) {
+      throw new Error('minPatrolSize must be greater than 0');
+    }
+
+    // Create lookup map for O(1) access instead of O(n) searches
+    const entryMap = new Map<string, PatrolEntry>(
+      entries.map((e) => [e.participantId, e]),
+    );
+
     // 1. GROUP BY BOW CATEGORY (primary grouping)
     const groups = this.groupByBowCategory(entries);
 
@@ -71,16 +84,22 @@ export class PatrolGenerationService {
     );
 
     // 5. BALANCE PATROL SIZES (preserving bow category when possible)
-    patrols = this.balancePatrolSizes(patrols, minSize, maxSize, entries);
+    patrols = this.balancePatrolSizes(
+      patrols,
+      minSize,
+      maxSize,
+      entries,
+      entryMap,
+    );
 
     // 6. BALANCE CLUBS (best effort)
-    patrols = this.balanceClubs(patrols, entries);
+    patrols = this.balanceClubs(patrols, entries, entryMap);
 
     // 7. ASSIGN ROLES
-    const finalPatrols = this.assignRoles(patrols, entries);
+    const finalPatrols = this.assignRoles(patrols, entries, entryMap);
 
     // 8. CALCULATE STATS
-    const stats = this.calculateStats(finalPatrols, entries);
+    const stats = this.calculateStats(finalPatrols, entries, entryMap);
 
     return {
       patrols: finalPatrols,
@@ -225,6 +244,7 @@ export class PatrolGenerationService {
     minSize: number,
     maxSize: number,
     entries: PatrolEntry[],
+    entryMap: Map<string, PatrolEntry>,
   ): string[][] {
     let iterations = 0;
     const maxIterations = 100;
@@ -242,7 +262,7 @@ export class PatrolGenerationService {
       const candidate = this.findBestCandidateForMove(
         largest,
         smallest,
-        entries,
+        entryMap,
       );
 
       if (candidate) {
@@ -269,18 +289,18 @@ export class PatrolGenerationService {
   private findBestCandidateForMove(
     sourcePatrol: string[],
     targetPatrol: string[],
-    entries: PatrolEntry[],
+    entryMap: Map<string, PatrolEntry>,
   ): string | null {
-    // Get patrol characteristics
+    // Get patrol characteristics using O(1) lookup
     const targetCategories = targetPatrol
-      .map((id) => entries.find((e) => e.participantId === id)?.bowCategory)
-      .filter(Boolean);
+      .map((id) => entryMap.get(id)?.bowCategory)
+      .filter(Boolean) as string[];
     const targetDivisions = targetPatrol
-      .map((id) => entries.find((e) => e.participantId === id)?.division)
-      .filter(Boolean);
+      .map((id) => entryMap.get(id)?.division)
+      .filter(Boolean) as string[];
     const targetGenders = targetPatrol
-      .map((id) => entries.find((e) => e.participantId === id)?.gender)
-      .filter(Boolean);
+      .map((id) => entryMap.get(id)?.gender)
+      .filter(Boolean) as string[];
 
     const commonCategory = this.getMostCommon(targetCategories);
     const commonDivision = this.getMostCommon(targetDivisions);
@@ -290,7 +310,7 @@ export class PatrolGenerationService {
     let bestScore = -1;
 
     for (const participantId of sourcePatrol) {
-      const entry = entries.find((e) => e.participantId === participantId);
+      const entry = entryMap.get(participantId);
       if (!entry) continue;
 
       let score = 0;
@@ -316,11 +336,12 @@ export class PatrolGenerationService {
   private balanceClubs(
     patrols: string[][],
     entries: PatrolEntry[],
+    entryMap: Map<string, PatrolEntry>,
   ): string[][] {
     // For each patrol with low club diversity, try to swap with others
     for (let i = 0; i < patrols.length; i++) {
       const patrol = patrols[i];
-      const clubs = this.getUniqueClubs(patrol, entries);
+      const clubs = this.getUniqueClubs(patrol, entryMap);
 
       if (clubs.length < 2 && patrol.length >= 2) {
         // Try to find a swap with another patrol
@@ -328,14 +349,14 @@ export class PatrolGenerationService {
           if (i === j) continue;
 
           const otherPatrol = patrols[j];
-          const otherClubs = this.getUniqueClubs(otherPatrol, entries);
+          const otherClubs = this.getUniqueClubs(otherPatrol, entryMap);
 
           if (otherClubs.length > 2) {
             // Try to swap members
             const swapped = this.trySwapForDiversity(
               patrol,
               otherPatrol,
-              entries,
+              entryMap,
             );
             if (swapped) break;
           }
@@ -352,20 +373,20 @@ export class PatrolGenerationService {
   private trySwapForDiversity(
     patrol1: string[],
     patrol2: string[],
-    entries: PatrolEntry[],
+    entryMap: Map<string, PatrolEntry>,
   ): boolean {
-    const patrol1Clubs = this.getUniqueClubs(patrol1, entries);
-    const patrol2Clubs = this.getUniqueClubs(patrol2, entries);
+    const patrol1Clubs = this.getUniqueClubs(patrol1, entryMap);
+    const patrol2Clubs = this.getUniqueClubs(patrol2, entryMap);
 
     // Find a member from patrol2 with a club not in patrol1
     for (const member2 of patrol2) {
-      const member2Entry = entries.find((e) => e.participantId === member2);
+      const member2Entry = entryMap.get(member2);
       if (!member2Entry) continue;
 
       if (!patrol1Clubs.includes(member2Entry.club)) {
         // Find a member from patrol1 to swap
         for (const member1 of patrol1) {
-          const member1Entry = entries.find((e) => e.participantId === member1);
+          const member1Entry = entryMap.get(member1);
           if (!member1Entry) continue;
 
           // Check if swap improves diversity
@@ -405,9 +426,10 @@ export class PatrolGenerationService {
   private assignRoles(
     patrols: string[][],
     entries: PatrolEntry[],
+    entryMap: Map<string, PatrolEntry>,
   ): GeneratedPatrol[] {
     return patrols.map((members, index) => {
-      const judges = this.selectJudges(members, entries);
+      const judges = this.selectJudges(members, entryMap);
       const leaderId = this.selectLeader(members, judges);
 
       return {
@@ -425,7 +447,7 @@ export class PatrolGenerationService {
    */
   private selectJudges(
     members: string[],
-    entries: PatrolEntry[],
+    entryMap: Map<string, PatrolEntry>,
   ): [string, string] {
     if (members.length < 2) {
       // Fallback: duplicate if not enough members
@@ -435,7 +457,7 @@ export class PatrolGenerationService {
     // Group members by club
     const clubMap = new Map<string, string[]>();
     for (const memberId of members) {
-      const entry = entries.find((e) => e.participantId === memberId);
+      const entry = entryMap.get(memberId);
       if (!entry) continue;
 
       if (!clubMap.has(entry.club)) {
@@ -478,6 +500,7 @@ export class PatrolGenerationService {
   private calculateStats(
     patrols: GeneratedPatrol[],
     entries: PatrolEntry[],
+    entryMap: Map<string, PatrolEntry>,
   ): PatrolGenerationStats {
     if (patrols.length === 0) {
       return this.createEmptyStats();
@@ -489,12 +512,8 @@ export class PatrolGenerationService {
     // Club diversity: % of patrols with judges from different clubs
     let diversePatrols = 0;
     for (const patrol of patrols) {
-      const judge1 = entries.find(
-        (e) => e.participantId === patrol.judgeIds[0],
-      );
-      const judge2 = entries.find(
-        (e) => e.participantId === patrol.judgeIds[1],
-      );
+      const judge1 = entryMap.get(patrol.judgeIds[0]);
+      const judge2 = entryMap.get(patrol.judgeIds[1]);
 
       if (judge1 && judge2 && judge1.club !== judge2.club) {
         diversePatrols++;
@@ -505,10 +524,10 @@ export class PatrolGenerationService {
     // Bow category homogeneity (most important metric now)
     let homogeneousCategoryPatrols = 0;
     for (const patrol of patrols) {
-      const categories = patrol.members.map(
-        (id) => entries.find((e) => e.participantId === id)?.bowCategory,
-      );
-      if (new Set(categories).size === 1) {
+      const categories = patrol.members
+        .map((id) => entryMap.get(id)?.bowCategory)
+        .filter(Boolean) as string[];
+      if (categories.length > 0 && new Set(categories).size === 1) {
         homogeneousCategoryPatrols++;
       }
     }
@@ -518,10 +537,10 @@ export class PatrolGenerationService {
     // Division homogeneity
     let homogeneousDivisionPatrols = 0;
     for (const patrol of patrols) {
-      const divisions = patrol.members.map(
-        (id) => entries.find((e) => e.participantId === id)?.division,
-      );
-      if (new Set(divisions).size === 1) {
+      const divisions = patrol.members
+        .map((id) => entryMap.get(id)?.division)
+        .filter(Boolean) as string[];
+      if (divisions.length > 0 && new Set(divisions).size === 1) {
         homogeneousDivisionPatrols++;
       }
     }
@@ -531,10 +550,10 @@ export class PatrolGenerationService {
     // Gender homogeneity
     let homogeneousGenderPatrols = 0;
     for (const patrol of patrols) {
-      const genders = patrol.members.map(
-        (id) => entries.find((e) => e.participantId === id)?.gender,
-      );
-      if (new Set(genders).size === 1) {
+      const genders = patrol.members
+        .map((id) => entryMap.get(id)?.gender)
+        .filter(Boolean) as string[];
+      if (genders.length > 0 && new Set(genders).size === 1) {
         homogeneousGenderPatrols++;
       }
     }
@@ -555,9 +574,12 @@ export class PatrolGenerationService {
   /**
    * Helper: Get unique clubs from patrol members
    */
-  private getUniqueClubs(members: string[], entries: PatrolEntry[]): string[] {
+  private getUniqueClubs(
+    members: string[],
+    entryMap: Map<string, PatrolEntry>,
+  ): string[] {
     const clubs = members
-      .map((id) => entries.find((e) => e.participantId === id)?.club)
+      .map((id) => entryMap.get(id)?.club)
       .filter((club): club is string => Boolean(club));
 
     return Array.from(new Set(clubs));

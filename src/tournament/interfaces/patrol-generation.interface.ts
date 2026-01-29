@@ -1,13 +1,18 @@
 /**
+ * Gender type for participants
+ */
+export type Gender = 'm' | 'f' | 'other';
+
+/**
  * Input: Participant entry for a specific category
  */
 export interface PatrolEntry {
   participantId: string;
   name: string;
   club: string; // Club name from database
-  bowCategory: string; // BowCategory name (e.g., 'FSC', 'LB', 'BBC')
+  bowCategory: string; // BowCategory code (e.g., 'FSC', 'LB', 'BBC') - NOT name
   division: string; // Division name (e.g., 'Adult Male', 'Junior Female')
-  gender: string; // 'm', 'f', 'other' - extracted from User or Division
+  gender: Gender; // 'm', 'f', 'other' - extracted from User or Division
   escalao: string; // Original value from form/division
 }
 
@@ -27,13 +32,13 @@ export interface GeneratedPatrol {
  */
 export interface PatrolGenerationConfig {
   tournamentId: string;
-  bowCategory: string; // Filter by bow category (e.g., 'FSC', 'LB')
-  targetPatrolCount: number; // Number of targets (patrols)
+  bowCategory: string; // Filter by bow category (e.g., 'FSC', 'LB') or 'All Categories'
+  targetPatrolCount: number; // Number of targets (patrols) - must be > 0
   groupingPriority?: Array<{
     field: 'division' | 'gender';
     weight: number;
   }>;
-  minPatrolSize: number; // Default: 3
+  minPatrolSize: number; // Minimum patrol size - must be > 0, default: 3
 }
 
 /**

@@ -1,6 +1,6 @@
 export interface ImageUploadOptions {
   type: 'avatar' | 'banner' | 'logo';
-  entityId: string;
+  entityId?: string;
   cropX?: number;
   cropY?: number;
   cropWidth?: number;

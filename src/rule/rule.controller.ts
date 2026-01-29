@@ -32,14 +32,14 @@ export class RuleController {
     return this.ruleService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.ruleService.findOne(id);
-  }
-
   @Get('code/:ruleCode')
   findByCode(@Param('ruleCode') ruleCode: string) {
     return this.ruleService.findByCode(ruleCode);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.ruleService.findOne(id);
   }
 
   @Patch(':id')

@@ -32,7 +32,7 @@ export class UploadController {
 
     const result = await this.uploadService.processAndSaveImage(file, {
       type: dto.type,
-      entityId: dto.entityId,
+      entityId: dto.entityId ?? undefined,
       cropX: dto.cropX,
       cropY: dto.cropY,
       cropWidth: dto.cropWidth,

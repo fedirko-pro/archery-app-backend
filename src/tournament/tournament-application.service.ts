@@ -22,13 +22,51 @@ export class TournamentApplicationService {
     private readonly emailService: EmailService,
   ) {}
 
+  /** Resolve divisionId from division (id) or divisionId. */
+  private resolveDivisionId(data: {
+    divisionId?: string;
+    division?: string;
+  }): string | undefined {
+    return data.divisionId ?? data.division ?? undefined;
+  }
+
+  /** Resolve bowCategoryId from bowCategoryId or category (id or code). */
+  private async resolveBowCategoryId(data: {
+    bowCategoryId?: string;
+    category?: string;
+  }): Promise<string | undefined> {
+    const raw = data.bowCategoryId ?? data.category;
+    if (!raw) return undefined;
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        raw,
+      );
+    if (isUuid) {
+      const found = await this.em.findOne(BowCategory, { id: raw });
+      if (!found) {
+        throw new NotFoundException(`BowCategory with ID ${raw} not found`);
+      }
+      return found.id;
+    }
+    const byCode = await this.em.findOne(BowCategory, { code: raw });
+    if (!byCode) {
+      throw new NotFoundException(`BowCategory with code ${raw} not found`);
+    }
+    return byCode.id;
+  }
+
   async create(data: {
     tournamentId: string;
     applicantId: string;
     divisionId?: string;
+    division?: string;
     bowCategoryId?: string;
+    category?: string;
     notes?: string;
   }): Promise<TournamentApplication> {
+    const divisionId = this.resolveDivisionId(data);
+    const bowCategoryId = await this.resolveBowCategoryId(data);
+
     const tournament = await this.em.findOne(Tournament, {
       id: data.tournamentId,
     });
@@ -53,9 +91,9 @@ export class TournamentApplicationService {
         );
       }
 
-      if (data.bowCategoryId) {
+      if (bowCategoryId) {
         const existingApplicationWithSameCategory = existingApplications.find(
-          (app) => app.bowCategory?.id === data.bowCategoryId,
+          (app) => app.bowCategory?.id === bowCategoryId,
         );
 
         if (existingApplicationWithSameCategory) {
@@ -70,22 +108,20 @@ export class TournamentApplicationService {
     let division: Division | null = null;
     let bowCategory: BowCategory | null = null;
 
-    if (data.divisionId) {
-      division = await this.em.findOne(Division, { id: data.divisionId });
+    if (divisionId) {
+      division = await this.em.findOne(Division, { id: divisionId });
       if (!division) {
-        throw new NotFoundException(
-          `Division with ID ${data.divisionId} not found`,
-        );
+        throw new NotFoundException(`Division with ID ${divisionId} not found`);
       }
     }
 
-    if (data.bowCategoryId) {
+    if (bowCategoryId) {
       bowCategory = await this.em.findOne(BowCategory, {
-        id: data.bowCategoryId,
+        id: bowCategoryId,
       });
       if (!bowCategory) {
         throw new NotFoundException(
-          `BowCategory with ID ${data.bowCategoryId} not found`,
+          `BowCategory with ID ${bowCategoryId} not found`,
         );
       }
     }

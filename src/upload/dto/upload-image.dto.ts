@@ -13,7 +13,8 @@ export class UploadImageDto {
   type: 'avatar' | 'banner' | 'logo';
 
   @IsString()
-  entityId: string;
+  @IsOptional()
+  entityId?: string;
 
   @IsOptional()
   @Type(() => Number)

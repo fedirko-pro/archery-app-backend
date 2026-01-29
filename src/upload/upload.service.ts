@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import * as sharp from 'sharp';
-import { v4 as uuid } from 'uuid';
+import { v4 as uuidV4 } from 'uuid';
 import {
   ImageUploadOptions,
   ProcessedImage,
@@ -82,13 +82,14 @@ export class UploadService {
     try {
       const {
         type,
-        entityId,
+        entityId: providedEntityId,
         cropX,
         cropY,
         cropWidth,
         cropHeight,
         quality = 90,
       } = options;
+      const entityId = providedEntityId ?? uuidV4();
       const dimensions = this.imageDimensions[type];
 
       // Process image with sharp
@@ -193,7 +194,7 @@ export class UploadService {
 
       // Sanitize filename
       const sanitizedFilename = this.sanitizeFilename(file.originalname);
-      const id = uuid();
+      const id = uuidV4();
       const filename = `${id}_${sanitizedFilename}`;
       const filepath = join(tournamentDir, filename);
 

@@ -33,14 +33,14 @@ export class BowCategoryController {
     return this.bowCategoryService.findAll(ruleId);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.bowCategoryService.findOne(id);
-  }
-
   @Get('code/:code')
   findByCode(@Param('code') code: string) {
     return this.bowCategoryService.findByCode(code);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.bowCategoryService.findOne(id);
   }
 
   @Patch(':id')

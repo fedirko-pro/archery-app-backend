@@ -95,6 +95,8 @@ If you prefer to use a local PostgreSQL installation:
 
    The application will be available at `http://localhost:3000`
 
+   **Rule PDFs:** Rules in the DB store only a `downloadLink` (path/filename); PDF files are served from `pdf/rules/`. Copy PDFs from `app-archery/public/pdf/rules/` into this repo’s `pdf/rules/` (see `pdf/rules/README.md`).
+
 2. **With debugging enabled**
    ```bash
    pnpm run start:debug

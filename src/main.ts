@@ -24,6 +24,11 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
+  // Rule PDFs: files in pdf/rules/ served at /pdf/rules/ (Rule.downloadLink in DB is path/filename; frontend requests from API)
+  app.useStaticAssets(join(process.cwd(), 'pdf'), {
+    prefix: '/pdf/',
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

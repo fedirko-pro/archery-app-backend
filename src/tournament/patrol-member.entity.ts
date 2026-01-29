@@ -28,4 +28,4 @@ export class PatrolMember {
 
   @Property({ onUpdate: () => new Date(), nullable: true })
   updatedAt?: Date;
-} 
+}

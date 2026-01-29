@@ -1,4 +1,10 @@
-import { Entity, PrimaryKey, Property, ManyToOne, OneToMany } from '@mikro-orm/core';
+import {
+  Entity,
+  PrimaryKey,
+  Property,
+  ManyToOne,
+  OneToMany,
+} from '@mikro-orm/core';
 import { v4 as uuid } from 'uuid';
 import { Tournament } from './tournament.entity';
 import { User } from '../user/entity/user.entity';
@@ -21,7 +27,7 @@ export class Patrol {
   @ManyToOne(() => User)
   leader: User;
 
-  @OneToMany(() => PatrolMember, member => member.patrol)
+  @OneToMany(() => PatrolMember, (member) => member.patrol)
   members = [];
 
   @Property({ onCreate: () => new Date() })
@@ -29,4 +35,4 @@ export class Patrol {
 
   @Property({ onUpdate: () => new Date(), nullable: true })
   updatedAt?: Date;
-} 
+}

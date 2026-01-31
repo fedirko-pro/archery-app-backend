@@ -1,0 +1,53 @@
+# Docker Compose for local development with database
+# For production on VPS, use the docker-compose.yml in /srv/archery-api/
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: archery_db_dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DATABASE_USER:-archery_user}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-archery_pass}
+      POSTGRES_DB: ${DATABASE_NAME:-archery_db}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - archery_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-archery_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: archery_backend_dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+      - ./pdf:/app/pdf
+    networks:
+      - archery_network
+    command: sh -c "node dist/main.js"
+
+networks:
+  archery_network:
+    driver: bridge
+
+volumes:
+  db_data:

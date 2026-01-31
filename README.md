@@ -1,6 +1,8 @@
-# Archery App Backend
+# 🏹 Archery App Backend
 
-A NestJS-based backend application for managing archery tournaments, users, and authentication. Built with TypeScript, PostgreSQL, and MikroORM.
+NestJS-based backend application for managing archery tournaments, users, and authentication. Built with TypeScript, PostgreSQL, and MikroORM.
+
+> **Для деплою на VPS**: Дивіться [DEPLOYMENT.md](./DEPLOYMENT.md)
 
 ## 🚀 Features
 
@@ -244,43 +246,45 @@ Configure your email service for password reset functionality. See [docs/EMAIL_S
 
 ## 🚀 Deployment
 
-### Environment Variables for Production
+### Quick Start with Docker
 
-Make sure to update your environment variables for production:
-
-```env
-NODE_ENV=production
-DATABASE_HOST=your-production-db-host
-DATABASE_PORT=5432
-DATABASE_USER=your-production-db-user
-DATABASE_PASSWORD=your-production-db-password
-DATABASE_NAME=your-production-db-name
-JWT_SECRET=your-production-jwt-secret
-FRONTEND_URL=https://your-frontend-domain.com
-BACKEND_URL=https://your-backend-domain.com
-GOOGLE_CALLBACK_URL=https://your-backend-domain.com/auth/google/callback
-```
-
-### Build and Deploy
-
-1. **Build the application**
+1. **Copy environment file**
    ```bash
-   pnpm run build
+   cp .env.example .env
+   # Edit .env with your production values
    ```
 
-2. **Start the production server**
+2. **Start with Docker Compose**
    ```bash
-   pnpm run start:prod
+   docker-compose -f docker-compose.prod.yml up -d --build
    ```
+
+3. **Run migrations and seeders**
+   ```bash
+   docker-compose -f docker-compose.prod.yml exec backend pnpm mikro-orm migration:up
+   docker-compose -f docker-compose.prod.yml exec backend pnpm mikro-orm seeder:run
+   ```
+
+### Full Deployment Guide
+
+For detailed deployment instructions on VPS with Ubuntu and Docker, see **[DEPLOYMENT.md](./DEPLOYMENT.md)**
 
 ## 📚 API Documentation
 
 The API endpoints are organized as follows:
 
-- **Authentication**: `/auth/*` - Login, register, password reset
+- **Authentication**: `/auth/*` - Login, register, password reset, Google OAuth
 - **Users**: `/users/*` - User management
 - **Tournaments**: `/tournaments/*` - Tournament management
-- **Email**: `/email/*` - Email-related endpoints
+- **Tournament Applications**: `/tournament-applications/*` - Application management
+- **Patrols**: `/patrols/*` - Patrol generation and management
+- **Bow Categories**: `/bow-categories/*` - Bow category management
+- **Divisions**: `/divisions/*` - Division management
+- **Rules**: `/rules/*` - Rule management
+- **Clubs**: `/clubs/*` - Club management
+- **Upload**: `/upload/*` - File upload (images, attachments)
+
+For detailed API endpoint information, refer to the controller files in `src/` directory.
 
 ## 🤝 Contributing
 
@@ -344,7 +348,11 @@ The project uses Husky and lint-staged to ensure code quality:
 
 ## 🔗 Related Documentation
 
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Complete deployment guide for VPS
+- [docs/GOOGLE_OAUTH_SETUP.md](./docs/GOOGLE_OAUTH_SETUP.md) - Google OAuth setup
+- [docs/EMAIL_SETUP.md](./docs/EMAIL_SETUP.md) - Email configuration
+
+### External Resources
+
 - [NestJS Documentation](https://docs.nestjs.com/)
-- [MikroORM Documentation](https://mikro-orm.io/)
-- [Google OAuth Setup](docs/GOOGLE_OAUTH_SETUP.md)
-- [Email Setup](docs/EMAIL_SETUP.md) 
+- [MikroORM Documentation](https://mikro-orm.io/) 

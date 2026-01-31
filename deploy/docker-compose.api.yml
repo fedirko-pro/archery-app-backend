@@ -1,0 +1,53 @@
+# Docker Compose for VPS production - Backend API
+# Place this file in /srv/archery-api/docker-compose.yml
+# Clone the repository to /srv/archery-api/src/
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: archery_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - archery_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    container_name: archery_api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - ./src/.env
+    environment:
+      DATABASE_HOST: db
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+      - ./pdf:/app/pdf
+    networks:
+      - archery_network
+    command: sh -c "node dist/main.js"
+
+networks:
+  archery_network:
+    driver: bridge
+
+volumes:
+  db_data:

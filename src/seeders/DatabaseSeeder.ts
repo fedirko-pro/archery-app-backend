@@ -11,6 +11,7 @@ import { Club } from '../club/club.entity';
 import bcrypt from 'bcryptjs';
 import { ClubSeeder } from './ClubSeeder';
 import { RuleSeeder } from './RuleSeeder';
+import { DivisionSeeder } from './DivisionSeeder';
 import { BowCategorySeeder } from './BowCategorySeeder';
 import { FABPRotaSeeder } from './FABPRotaSeeder';
 import { Division } from '../division/division.entity';
@@ -25,10 +26,11 @@ export class DatabaseSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     console.log('🌱 Starting database seeding...');
 
-    // Seed clubs, rules, bow categories, and divisions first
+    // Seed clubs, rules, divisions, bow categories, and FABP-ROTA data
     await this.call(em, [
       ClubSeeder,
       RuleSeeder,
+      DivisionSeeder,
       BowCategorySeeder,
       FABPRotaSeeder,
     ]);

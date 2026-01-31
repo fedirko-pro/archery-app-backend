@@ -171,7 +171,7 @@ export class TournamentApplicationService {
         applicant: { id: applicantId },
       },
       {
-        populate: ['tournament'],
+        populate: ['tournament', 'division', 'bowCategory'],
       },
     );
   }

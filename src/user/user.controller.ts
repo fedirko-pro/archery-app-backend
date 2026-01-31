@@ -67,6 +67,7 @@ export class UserController {
         gender,
         categories,
         clubId: club?.id || null,
+        club: club ? { id: club.id, name: club.name } : null,
         createdAt,
         updatedAt,
       };

@@ -10,6 +10,7 @@ export interface PatrolEntry {
   participantId: string;
   name: string;
   club: string; // Club name from database
+  federationNumber?: string; // Federation number (e.g., FABP ID)
   bowCategory: string; // BowCategory code (e.g., 'FSC', 'LB', 'BBC') - NOT name
   division: string; // Division name (e.g., 'Adult Male', 'Junior Female')
   gender: Gender; // 'm', 'f', 'other' - extracted from User or Division
@@ -38,7 +39,7 @@ export interface PatrolGenerationConfig {
     field: 'division' | 'gender';
     weight: number;
   }>;
-  minPatrolSize: number; // Minimum patrol size - must be > 0, default: 3
+  minPatrolSize: number; // Minimum patrol size - must be > 0, default: 4
 }
 
 /**
@@ -61,4 +62,12 @@ export interface PatrolGenerationStats {
 export interface PatrolGenerationResult {
   patrols: GeneratedPatrol[];
   stats: PatrolGenerationStats;
+}
+
+/**
+ * Score card table configuration (from tournament rules)
+ */
+export interface ScoreCardConfig {
+  arrowsPerEnd: number; // 3, 5, or 6
+  endsCount: number; // number of ends/rows
 }

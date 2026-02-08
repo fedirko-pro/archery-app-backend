@@ -20,6 +20,7 @@ import {
   PatrolEntry,
   PatrolGenerationConfig,
   PatrolGenerationResult,
+  ScoreCardConfig,
 } from './interfaces/patrol-generation.interface';
 import { format } from 'date-fns';
 
@@ -505,8 +506,14 @@ export class PatrolService {
    * Generate PDF for saved patrols of a tournament
    */
   async generatePatrolPdf(tournamentId: string): Promise<Buffer> {
-    // 1. Fetch tournament info
-    const tournament = await this.em.findOne(Tournament, { id: tournamentId });
+    // 1. Fetch tournament info with rule
+    const tournament = await this.em.findOne(
+      Tournament,
+      { id: tournamentId },
+      {
+        populate: ['rule'],
+      },
+    );
     if (!tournament) {
       throw new NotFoundException(
         `Tournament with ID ${tournamentId} not found`,
@@ -614,19 +621,132 @@ export class PatrolService {
       };
     });
 
-    // 7. Get bow category name (from first patrol's members)
-    const firstApp = applications[0];
-    const bowCategoryName = firstApp?.bowCategory?.name || 'All Categories';
+    const rulesLabel = tournament.rule!.ruleName;
+    const location = tournament.address || '';
 
     // 8. Generate PDF
     const pdfBuffer = await this.patrolPdfService.generatePatrolListPdf(
       tournament.title,
-      bowCategoryName,
+      rulesLabel,
+      location,
       format(tournament.startDate, 'dd/MM/yyyy'),
       generatedPatrols,
       entries,
     );
 
     return pdfBuffer;
+  }
+
+  /**
+   * Generate PDF with score cards for all patrol members
+   */
+  async generateScoreCardsPdf(tournamentId: string): Promise<Buffer> {
+    // Reuse same data fetching as patrol list PDF
+    const tournament = await this.em.findOne(Tournament, { id: tournamentId });
+    if (!tournament) {
+      throw new NotFoundException(
+        `Tournament with ID ${tournamentId} not found`,
+      );
+    }
+
+    const patrols = await this.em.find(
+      Patrol,
+      { tournament: { id: tournamentId } },
+      { populate: ['leader', 'leader.club'] },
+    );
+
+    if (patrols.length === 0) {
+      throw new BadRequestException('No patrols found for this tournament');
+    }
+
+    const allPatrolMembers = await this.em.find(
+      PatrolMember,
+      { patrol: { $in: patrols.map((p) => p.id) } },
+      { populate: ['user', 'user.club'] },
+    );
+
+    const generatedPatrols = patrols.map((patrol) => {
+      const members = allPatrolMembers.filter((m) => {
+        const patrolId =
+          typeof m.patrol === 'string' ? m.patrol : (m.patrol as any).id;
+        return patrolId === patrol.id;
+      });
+
+      const judges = members
+        .filter((m) => m.role === PatrolRole.JUDGE)
+        .map((m) => m.user.id)
+        .slice(0, 2) as [string, string];
+
+      const targetMatch = patrol.name.match(/\d+/);
+      const targetNumber = targetMatch
+        ? parseInt(targetMatch[0], 10)
+        : patrols.indexOf(patrol) + 1;
+
+      return {
+        id: patrol.id,
+        targetNumber,
+        members: members.map((m) => m.user.id),
+        leaderId: patrol.leader.id,
+        judgeIds:
+          judges.length === 2
+            ? judges
+            : ([members[0]?.user.id || '', members[1]?.user.id || ''] as [
+                string,
+                string,
+              ]),
+      };
+    });
+
+    const allMemberIds = new Set<string>();
+    allPatrolMembers.forEach((member) => allMemberIds.add(member.user.id));
+
+    const applications = await this.em.find(
+      TournamentApplication,
+      {
+        tournament: { id: tournamentId },
+        applicant: { id: { $in: Array.from(allMemberIds) } },
+        status: ApplicationStatus.APPROVED,
+      },
+      { populate: ['division', 'bowCategory'] },
+    );
+
+    const entries: PatrolEntry[] = Array.from(allMemberIds).map((userId) => {
+      const member = allPatrolMembers.find((m) => m.user.id === userId)!;
+      const app = applications.find((a) => a.applicant.id === userId);
+      const user = member.user;
+      const gender = user.gender?.toLowerCase() || 'other';
+      const normalizedGender: 'm' | 'f' | 'other' = [
+        'm',
+        'f',
+        'other',
+      ].includes(gender)
+        ? (gender as 'm' | 'f' | 'other')
+        : 'other';
+
+      return {
+        participantId: user.id,
+        name:
+          `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+        club: user.club?.name || 'No Club',
+        bowCategory: app?.bowCategory?.code || app?.bowCategory?.name || '-',
+        division: app?.division?.name || '-',
+        gender: normalizedGender,
+        escalao: app?.division?.name || '-',
+      };
+    });
+
+    const scoreConfig: ScoreCardConfig = {
+      arrowsPerEnd: 6,
+      endsCount: 12,
+    };
+
+    return this.patrolPdfService.generateScoreCardsPdf(
+      tournament.title,
+      tournament.address || '',
+      format(tournament.startDate, 'dd/MM/yyyy'),
+      generatedPatrols,
+      entries,
+      scoreConfig,
+    );
   }
 }

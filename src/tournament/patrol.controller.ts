@@ -134,4 +134,25 @@ export class PatrolController {
 
     res.send(pdfBuffer);
   }
+
+  /**
+   * Generate PDF with score cards for all patrol members
+   * GET /patrols/tournaments/:tournamentId/score-cards-pdf
+   */
+  @Get('tournaments/:tournamentId/score-cards-pdf')
+  async generateScoreCardsPdf(
+    @Param('tournamentId') tournamentId: string,
+    @Res() res: Response,
+  ) {
+    const pdfBuffer =
+      await this.patrolService.generateScoreCardsPdf(tournamentId);
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="score-cards-${tournamentId}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+
+    res.send(pdfBuffer);
+  }
 }

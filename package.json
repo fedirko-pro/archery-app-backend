@@ -19,6 +19,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "mikro-orm": "mikro-orm",
+    "generate-pdf-icons": "ts-node scripts/generate-pdf-icons.ts",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -41,7 +42,6 @@
     "@nestjs/platform-express": "^10.4.22",
     "@nestjs/schedule": "^6.1.0",
     "@types/nodemailer": "^6.4.22",
-    "@types/pdfkit": "^0.17.4",
     "bcryptjs": "^2.4.3",
     "class-transformer": "0.5.1",
     "class-validator": "^0.14.3",
@@ -72,6 +72,7 @@
     "@types/node": "^20.19.30",
     "@types/passport-google-oauth20": "^2.0.17",
     "@types/passport-jwt": "^4.0.1",
+    "@types/pdfkit": "^0.17.4",
     "@types/supertest": "^6.0.3",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.54.0",

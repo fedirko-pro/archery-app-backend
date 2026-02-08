@@ -52,9 +52,6 @@ importers:
       '@types/nodemailer':
         specifier: ^6.4.22
         version: 6.4.22
-      '@types/pdfkit':
-        specifier: ^0.17.4
-        version: 0.17.4
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
@@ -140,6 +137,9 @@ importers:
       '@types/passport-jwt':
         specifier: ^4.0.1
         version: 4.0.1
+      '@types/pdfkit':
+        specifier: ^0.17.4
+        version: 0.17.4
       '@types/supertest':
         specifier: ^6.0.3
         version: 6.0.3

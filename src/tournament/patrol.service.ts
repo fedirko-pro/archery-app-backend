@@ -374,6 +374,7 @@ export class PatrolService {
         name:
           `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
         club: user.club?.name || 'No Club',
+        clubShortCode: user.club?.shortCode ?? undefined,
         bowCategory: app.bowCategory.code, // Use code, not name
         division: app.division.name,
         gender: normalizedGender,
@@ -618,6 +619,7 @@ export class PatrolService {
         name:
           `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
         club: user.club?.name || 'No Club',
+        clubShortCode: user.club?.shortCode ?? undefined,
         bowCategory: app?.bowCategory?.code || app?.bowCategory?.name || '-',
         division: app?.division?.name || '-',
         gender: normalizedGender,
@@ -740,16 +742,18 @@ export class PatrolService {
         name:
           `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
         club: user.club?.name || 'No Club',
+        clubShortCode: user.club?.shortCode ?? undefined,
         bowCategory: app?.bowCategory?.code || app?.bowCategory?.name || '-',
         division: app?.division?.name || '-',
         gender: normalizedGender,
         escalao: app?.division?.name || '-',
+        federationNumber: user.federationNumber ?? undefined,
       };
     });
 
     const scoreConfig: ScoreCardConfig = {
-      arrowsPerEnd: 6,
-      endsCount: 12,
+      arrowsPerEnd: 5,
+      endsCount: 20,
     };
 
     const pdfBuffer = await this.patrolPdfService.generateScoreCardsPdf(

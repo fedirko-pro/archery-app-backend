@@ -308,11 +308,11 @@ export class PatrolPdfService {
     date: string,
     patrols: GeneratedPatrol[],
     entries: PatrolEntry[],
-    scoreConfig: ScoreCardConfig = { arrowsPerEnd: 6, endsCount: 12 },
+    scoreConfig: ScoreCardConfig = { arrowsPerEnd: 5, endsCount: 20 },
   ): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {
-        const padding = 20;
+        const padding = 10;
         const doc = new PDFDocument({
           size: 'A4',
           margins: {
@@ -376,8 +376,8 @@ export class PatrolPdfService {
           if (pageNum > 0) {
             doc.addPage();
           }
-          // Cut lines: one horizontal and one vertical in the middle
-          doc.strokeColor('#999999').lineWidth(0.5);
+          // Cut lines: one horizontal and one vertical (A4 → A5)
+          doc.strokeColor('#333333').lineWidth(1);
           doc
             .moveTo(centerX, padding)
             .lineTo(centerX, pageH - padding)
@@ -440,119 +440,217 @@ export class PatrolPdfService {
     crownPath: string,
     balancePath: string,
   ): void {
-    const pad = 6;
-    const tagPad = 4;
-    const tagRadius = 3;
+    const pad = 12;
+    const tagPad = 5;
+    const tagRadius = 4;
 
     doc.save();
     doc.y = y;
 
-    // Header: patrol # in rounded square, archer name, role in rounded square (with icon)
+    // Header (one row): patrol # in border | user's name | icon + role in border (if any)
     const headerY = y + pad;
-    const tagH = 14;
+    const tagH = 16;
+    const nameFontSize = 15;
+    const headerBorderWidth = 1.2;
 
-    // Patrol number tag (rounded square, no color bg)
-    this.drawRoundedTag(
-      doc,
-      `#${targetNumber}`,
-      x + pad,
-      headerY,
-      28,
-      tagH,
-      tagRadius,
-      tagPad,
-    );
-    let nameX = x + pad + 28 + 6;
+    // 1) Patrol number in border (align baseline with name so badge does not shift)
+    const patrolW = 32;
+    const patrolFontSize = 14;
+    doc.strokeColor('#000000').lineWidth(headerBorderWidth);
+    doc.roundedRect(x + pad, headerY, patrolW, tagH, tagRadius).stroke();
+    doc.fillColor('#000000').fontSize(patrolFontSize).font('Helvetica-Bold');
+    const headerBaselineY = headerY + (tagH - nameFontSize) / 2 + 2;
+    doc.text(`#${targetNumber}`, x + pad, headerBaselineY, {
+      width: patrolW,
+      align: 'center',
+    });
+    const afterPatrolX = x + pad + patrolW + 6;
 
-    // Role tag with icon (if any)
-    if (role) {
-      const iconSize = 10;
-      const iconPath = role === 'Leader' ? crownPath : balancePath;
+    // 2) Role + icon in border (only for Leader or Judge; width 58 so "Judge" doesn't wrap)
+    const isLeaderOrJudge = role === 'Leader' || role === 'Judge';
+    const roleW = isLeaderOrJudge ? 58 : 0;
+    const roleX = x + cardW - pad - roleW;
+    let nameEndX = x + cardW - pad;
+    if (isLeaderOrJudge && roleW > 0) {
+      doc.strokeColor('#000000').lineWidth(headerBorderWidth);
+      doc.roundedRect(roleX, headerY, roleW, tagH, tagRadius).stroke();
+      const iconSize = 11;
+      const gap = 4;
+      const iconX = roleX + tagPad;
+      const textX = iconX + iconSize + gap;
+      const textW = roleW - (iconSize + gap + tagPad * 2);
+      const roleIconPath = role === 'Leader' ? crownPath : balancePath;
       try {
-        doc.image(iconPath, nameX, headerY + (tagH - iconSize) / 2, {
+        doc.image(roleIconPath, iconX, headerY + (tagH - iconSize) / 2, {
           width: iconSize,
           height: iconSize,
         });
       } catch {
         // ignore if icon missing
       }
-      const roleW = role === 'Leader' ? 42 : 38;
-      this.drawRoundedTag(
-        doc,
-        role,
-        nameX + iconSize + 2,
-        headerY,
-        roleW,
-        tagH,
-        tagRadius,
-        tagPad,
-      );
-      nameX += iconSize + 2 + roleW + 6;
+      doc
+        .fillColor('#000000')
+        .fontSize(10)
+        .font('Helvetica-Bold')
+        .text(role, textX, headerY + (tagH - 9) / 2, {
+          width: textW,
+          align: 'center',
+        });
+      nameEndX = roleX - 6;
     }
 
-    // Archer name
-    doc.font('Helvetica-Bold').fontSize(10).fillColor('#000000');
-    doc.text(entry.name, nameX, headerY + (tagH - 10) / 2, {
-      width: cardW - (nameX - x) - pad,
+    // 3) User's name (centered between patrol and role)
+    doc.font('Helvetica-Bold').fontSize(nameFontSize).fillColor('#000000');
+    const nameWidth = nameEndX - afterPatrolX;
+    doc.text(
+      entry.name,
+      afterPatrolX,
+      headerY + (tagH - nameFontSize) / 2 + 2,
+      {
+        width: nameWidth,
+        align: 'center',
+      },
+    );
+
+    // Subtitle: tournament name (centered, bold)
+    const subY = headerY + tagH + 6;
+    doc.font('Helvetica-Bold').fontSize(10).fillColor('#333333');
+    doc.text(tournamentName, x + pad, subY, {
+      width: cardW - 2 * pad,
+      align: 'center',
     });
 
-    // Subtitle: tournament name
-    const subY = headerY + tagH + 6;
-    doc.font('Helvetica').fontSize(9).fillColor('#333333');
-    doc.text(tournamentName, x + pad, subY, { width: cardW - 2 * pad });
-
-    // Location and date
+    // Location and date (centered)
     const locY = subY + 12;
-    doc.fontSize(8).fillColor('#555555');
+    doc.font('Helvetica').fontSize(10).fillColor('#555555');
     const locDate = [location, date].filter(Boolean).join(' • ');
-    doc.text(locDate || '-', x + pad, locY, { width: cardW - 2 * pad });
+    doc.text(locDate || '-', x + pad, locY, {
+      width: cardW - 2 * pad,
+      align: 'center',
+    });
 
-    // Info subtables (Club, Division, Category)
-    const infoY = locY + 14;
-    const infoRowH = 10;
-    const infoColW = (cardW - 2 * pad) / 3;
-    const infoLabels = ['Club', 'Division', 'Category'];
-    const infoValues = [entry.club, entry.division, entry.bowCategory];
-    doc.font('Helvetica').fontSize(7).fillColor('#000000');
-    doc.strokeColor('#cccccc').lineWidth(0.3);
-    for (let k = 0; k < 3; k++) {
-      const cx = x + pad + k * infoColW;
-      doc.rect(cx, infoY, infoColW, infoRowH * 2).stroke();
-      doc.font('Helvetica-Bold').text(infoLabels[k], cx + 2, infoY + 2, {
-        width: infoColW - 4,
-      });
+    // Info: one row, one column per detail — [Club] [Fed. No.] [Division] [Category], each with header + value (space after location/date)
+    const infoY = locY + 18;
+    const infoPadH = 3;
+    const infoPadV = 2;
+    const infoFontSize = 10;
+    const infoCellH = Math.max(8, 2 * infoPadV + infoFontSize) * 2; // header row + value row
+    const infoCols = 4;
+    const infoColW = (cardW - 2 * pad) / infoCols;
+    const infoCells: Array<{ label: string; value: string }> = [
+      { label: 'Club', value: entry.clubShortCode ?? entry.club ?? '-' },
+      { label: 'Fed. No.', value: entry.federationNumber ?? '-' },
+      { label: 'Division', value: entry.division || '-' },
+      { label: 'Category', value: entry.bowCategory || '-' },
+    ];
+    doc.strokeColor('#999999').lineWidth(0.3);
+    doc.font('Helvetica').fontSize(infoFontSize);
+    for (let i = 0; i < infoCols; i++) {
+      const cx = x + pad + i * infoColW;
+      doc.rect(cx, infoY, infoColW, infoCellH).stroke();
+      doc.rect(cx, infoY, infoColW, infoCellH / 2).fill('#e8e8e8');
+      doc.rect(cx, infoY, infoColW, infoCellH / 2).stroke();
       doc
-        .font('Helvetica')
-        .text(infoValues[k] || '-', cx + 2, infoY + infoRowH + 2, {
-          width: infoColW - 4,
+        .fillColor('#000000')
+        .font('Helvetica-Bold')
+        .text(infoCells[i].label, cx + infoPadH, infoY + infoPadV, {
+          width: infoColW - 2 * infoPadH,
         });
+      doc
+        .fillColor('#000000')
+        .font('Helvetica')
+        .text(
+          infoCells[i].value,
+          cx + infoPadH,
+          infoY + infoCellH / 2 + infoPadV,
+          {
+            width: infoColW - 2 * infoPadH,
+          },
+        );
     }
 
-    // Score table
-    const gridTop = infoY + 2 * infoRowH + 8;
+    // Score table (centered; row/header heights scale from padding + font)
+    const infoBlockHeight = infoCellH;
+    const gridTop = infoY + infoBlockHeight + 8;
     const arrows = scoreConfig.arrowsPerEnd;
     const ends = scoreConfig.endsCount;
-    const rowH = 12;
-    const endColW = 18;
+    const scoreCellPadH = 3;
+    const scoreCellPadV = 3;
+    const scoreFontSize = 6;
+    const headerRowH = Math.max(8, 2 * scoreCellPadV + scoreFontSize);
+    const rowH = headerRowH;
+    const endColW = 42; // wide enough for "Round" / "Target" / "End" at 10pt
     const arrowColW = Math.min(22, (cardW - 2 * pad - endColW - 50) / arrows);
     const totalColW = 44;
+    const tableWidth = endColW + arrows * arrowColW + totalColW;
+    const gridStartX = x + (cardW - tableWidth) / 2;
+    const headerRowY = gridTop;
+    const firstColLabel =
+      scoreConfig.firstColumnLabel === 'Target'
+        ? 'Target'
+        : scoreConfig.firstColumnLabel === 'End'
+          ? 'End'
+          : 'Round';
 
-    // Header row
-    doc.fontSize(7).font('Helvetica-Bold');
-    doc.text('End', x + pad, gridTop, { width: endColW });
-    let gx = x + pad + endColW;
+    // Header row (light gray, centered text, padding)
+    doc.rect(gridStartX, headerRowY, endColW, headerRowH).fill('#e8e8e8');
+    doc
+      .rect(gridStartX + endColW, headerRowY, arrows * arrowColW, headerRowH)
+      .fill('#e8e8e8');
+    doc
+      .rect(
+        gridStartX + endColW + arrows * arrowColW,
+        headerRowY,
+        totalColW,
+        headerRowH,
+      )
+      .fill('#e8e8e8');
+    doc.strokeColor('#999999').lineWidth(0.3);
+    doc.rect(gridStartX, headerRowY, endColW, headerRowH).stroke();
+    let gx = gridStartX + endColW;
     for (let a = 1; a <= arrows; a++) {
-      doc.text(String(a), gx, gridTop, { width: arrowColW });
+      doc.rect(gx, headerRowY, arrowColW, headerRowH).stroke();
       gx += arrowColW;
     }
-    doc.text('Total', gx, gridTop, { width: totalColW });
+    doc.rect(gx, headerRowY, totalColW, headerRowH).stroke();
+    doc.fillColor('#000000').fontSize(10).font('Helvetica-Bold');
+    doc.text(
+      firstColLabel,
+      gridStartX + scoreCellPadH,
+      headerRowY + scoreCellPadV,
+      {
+        width: endColW - 2 * scoreCellPadH,
+        align: 'center',
+      },
+    );
+    gx = gridStartX + endColW;
+    for (let a = 1; a <= arrows; a++) {
+      doc.text(String(a), gx + scoreCellPadH, headerRowY + scoreCellPadV, {
+        width: arrowColW - 2 * scoreCellPadH,
+        align: 'center',
+      });
+      gx += arrowColW;
+    }
+    doc.text('Total', gx + scoreCellPadH, headerRowY + scoreCellPadV, {
+      width: totalColW - 2 * scoreCellPadH,
+      align: 'center',
+    });
 
-    // Data rows with borders
+    // Data rows (row header with gray bg, centered; cell padding)
     doc.font('Helvetica');
     for (let e = 1; e <= ends; e++) {
-      const rowY = gridTop + (e - 1) * rowH + 10;
-      doc.text(String(e), x + pad, rowY + (rowH - 8) / 2, { width: endColW });
-      gx = x + pad + endColW;
+      const rowY = gridTop + headerRowH + (e - 1) * rowH;
+      doc.rect(gridStartX, rowY, endColW, rowH).fill('#e8e8e8');
+      doc.rect(gridStartX, rowY, endColW, rowH).stroke();
+      doc
+        .fillColor('#000000')
+        .fontSize(10)
+        .text(String(e), gridStartX + scoreCellPadH, rowY + scoreCellPadV, {
+          width: endColW - 2 * scoreCellPadH,
+          align: 'center',
+        });
+      doc.fillColor('#000000');
+      gx = gridStartX + endColW;
       for (let a = 0; a < arrows; a++) {
         doc.rect(gx, rowY, arrowColW, rowH).stroke();
         gx += arrowColW;
@@ -560,20 +658,58 @@ export class PatrolPdfService {
       doc.rect(gx, rowY, totalColW, rowH).stroke();
     }
 
-    // Divider (no borders) + Total sum row: "Total sum:" right-aligned, last col with border
-    const dividerY = gridTop + ends * rowH + 10;
+    // Total sum row: space after colon; only last cell has border
+    const dividerY = gridTop + headerRowH + ends * rowH;
     const totalRowY = dividerY + 4;
 
-    doc.fontSize(8).font('Helvetica');
-    doc.text('Total sum:', x + pad + endColW, totalRowY + (rowH - 8) / 2, {
-      width: arrows * arrowColW,
-      align: 'right',
-    });
-    // End cell (empty), arrow cells (Total sum text), Total cell (with border)
-    doc.rect(x + pad, totalRowY, endColW, rowH).stroke();
-    doc.rect(x + pad + endColW, totalRowY, arrows * arrowColW, rowH).stroke();
+    doc.fontSize(10).font('Helvetica');
+    doc.text(
+      'Total sum:   ',
+      gridStartX + endColW,
+      totalRowY + (rowH - 8) / 2,
+      {
+        width: arrows * arrowColW - scoreCellPadH,
+        align: 'right',
+      },
+    );
     doc
-      .rect(x + pad + endColW + arrows * arrowColW, totalRowY, totalColW, rowH)
+      .rect(
+        gridStartX + endColW + arrows * arrowColW,
+        totalRowY,
+        totalColW,
+        rowH,
+      )
+      .stroke();
+
+    // Signature block: label with colon on same baseline, gap before line
+    const sigBlockHeight = 18;
+    const sigBlockTop = y + cardH - sigBlockHeight - pad;
+    const sigLineY = sigBlockTop + 5;
+    const sigLabelGap = 6;
+    const sigGap = 14;
+    const halfCard = cardW / 2;
+    doc.font('Helvetica').fontSize(10).fillColor('#000000');
+    const judgeLabelW = 34;
+    const leaderLabelW = 36;
+    const leftLineStart = x + pad + judgeLabelW + sigLabelGap;
+    const leftLineW =
+      (halfCard - pad - judgeLabelW - sigLabelGap - sigGap) * 0.9;
+    const rightLineStartX = x + halfCard + sigGap;
+    const rightLineStart = rightLineStartX + leaderLabelW + sigLabelGap;
+    const rightLineW =
+      (cardW - (rightLineStartX - x) - pad - leaderLabelW - sigLabelGap) * 0.9;
+
+    doc.text('Judge:', x + pad, sigBlockTop, { width: judgeLabelW });
+    doc
+      .strokeColor('#999999')
+      .lineWidth(0.4)
+      .moveTo(leftLineStart, sigLineY)
+      .lineTo(leftLineStart + leftLineW, sigLineY)
+      .stroke();
+    doc.text('Leader:', rightLineStartX, sigBlockTop, { width: leaderLabelW });
+    doc
+      .moveTo(rightLineStart, sigLineY)
+      .lineTo(rightLineStart + rightLineW, sigLineY)
       .stroke();
 
     doc.restore();
@@ -588,10 +724,11 @@ export class PatrolPdfService {
     h: number,
     r: number,
     pad: number,
+    fontSize: number = 8,
   ): void {
     doc.strokeColor('#333333').lineWidth(0.5);
     doc.roundedRect(x, y, w, h, r).stroke();
-    doc.fillColor('#000000').fontSize(8).font('Helvetica');
-    doc.text(text, x + pad, y + (h - 8) / 2, { width: w - 2 * pad });
+    doc.fillColor('#000000').fontSize(fontSize).font('Helvetica-Bold');
+    doc.text(text, x + pad, y + (h - fontSize) / 2, { width: w - 2 * pad });
   }
 }

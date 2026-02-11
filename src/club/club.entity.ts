@@ -9,6 +9,10 @@ export class Club {
   @Property()
   name: string;
 
+  /** Short code for score cards etc., e.g. "KSP" for "Kyiv Sport Club" */
+  @Property({ nullable: true })
+  shortCode?: string;
+
   @Property({ nullable: true })
   description?: string;
 

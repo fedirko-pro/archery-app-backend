@@ -10,6 +10,7 @@ export interface PatrolEntry {
   participantId: string;
   name: string;
   club: string; // Club name from database
+  clubShortCode?: string; // Club short code for score cards (e.g. "KSP")
   federationNumber?: string; // Federation number (e.g., FABP ID)
   bowCategory: string; // BowCategory code (e.g., 'FSC', 'LB', 'BBC') - NOT name
   division: string; // Division name (e.g., 'Adult Male', 'Junior Female')
@@ -70,4 +71,6 @@ export interface PatrolGenerationResult {
 export interface ScoreCardConfig {
   arrowsPerEnd: number; // 3, 5, or 6
   endsCount: number; // number of ends/rows
+  /** First column header: Round, Target, or End (default End) */
+  firstColumnLabel?: 'End' | 'Round' | 'Target';
 }

@@ -7,6 +7,10 @@ export class CreateClubDto {
 
   @IsString()
   @IsOptional()
+  shortCode?: string;
+
+  @IsString()
+  @IsOptional()
   description?: string;
 
   @IsString()

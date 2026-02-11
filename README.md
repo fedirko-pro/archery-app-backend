@@ -78,6 +78,34 @@ Before running this application, make sure you have the following installed:
    docker compose ps
    ```
 
+#### Using Colima (macOS alternative to Docker Desktop)
+
+If you're using [Colima](https://github.com/abiosoft/colima) instead of Docker Desktop:
+
+1. **Install Colima and Docker CLI** (if not already installed)
+   ```bash
+   brew install colima docker docker-compose
+   ```
+
+2. **Start Colima** (required before running any Docker commands)
+   ```bash
+   colima start
+   ```
+
+3. **Then start the database**
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Useful Colima commands**
+   ```bash
+   colima status    # Check if Colima is running
+   colima stop      # Stop Colima VM
+   colima start     # Start Colima VM
+   ```
+
+> **Note**: If you get "Cannot connect to the Docker daemon" errors, make sure Colima is running first with `colima start`.
+
 ### Option 2: Local PostgreSQL
 
 If you prefer to use a local PostgreSQL installation:
@@ -307,6 +335,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
    - Ensure PostgreSQL is running
    - Check your database credentials in `.env`
    - Verify the database exists
+   - If using Colima: ensure it's running with `colima start`
 
 2. **Migration Errors**
    - Make sure all previous migrations are applied
@@ -321,6 +350,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
    - Verify your Google OAuth credentials
    - Check that the redirect URI matches exactly
    - Ensure the Google+ API is enabled
+
+5. **Docker Daemon Not Running (Colima users)**
+   - Run `colima start` before using Docker commands
+   - Check status with `colima status`
+   - If Colima fails to start, try `colima delete` then `colima start`
 
 ### Getting Help
 

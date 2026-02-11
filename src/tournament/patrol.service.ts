@@ -505,7 +505,11 @@ export class PatrolService {
   /**
    * Generate PDF for saved patrols of a tournament
    */
-  async generatePatrolPdf(tournamentId: string): Promise<Buffer> {
+  async generatePatrolPdf(tournamentId: string): Promise<{
+    buffer: Buffer;
+    tournamentTitle: string;
+    startDate: Date;
+  }> {
     // 1. Fetch tournament info with rule
     const tournament = await this.em.findOne(
       Tournament,
@@ -634,13 +638,21 @@ export class PatrolService {
       entries,
     );
 
-    return pdfBuffer;
+    return {
+      buffer: pdfBuffer,
+      tournamentTitle: tournament.title,
+      startDate: tournament.startDate,
+    };
   }
 
   /**
    * Generate PDF with score cards for all patrol members
    */
-  async generateScoreCardsPdf(tournamentId: string): Promise<Buffer> {
+  async generateScoreCardsPdf(tournamentId: string): Promise<{
+    buffer: Buffer;
+    tournamentTitle: string;
+    startDate: Date;
+  }> {
     // Reuse same data fetching as patrol list PDF
     const tournament = await this.em.findOne(Tournament, { id: tournamentId });
     if (!tournament) {
@@ -740,7 +752,7 @@ export class PatrolService {
       endsCount: 12,
     };
 
-    return this.patrolPdfService.generateScoreCardsPdf(
+    const pdfBuffer = await this.patrolPdfService.generateScoreCardsPdf(
       tournament.title,
       tournament.address || '',
       format(tournament.startDate, 'dd/MM/yyyy'),
@@ -748,5 +760,11 @@ export class PatrolService {
       entries,
       scoreConfig,
     );
+
+    return {
+      buffer: pdfBuffer,
+      tournamentTitle: tournament.title,
+      startDate: tournament.startDate,
+    };
   }
 }

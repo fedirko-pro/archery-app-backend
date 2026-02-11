@@ -10,6 +10,7 @@ import {
   Res,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { format } from 'date-fns';
 import { PatrolService } from './patrol.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -124,15 +125,24 @@ export class PatrolController {
     @Param('tournamentId') tournamentId: string,
     @Res() res: Response,
   ) {
-    const pdfBuffer = await this.patrolService.generatePatrolPdf(tournamentId);
+    const { buffer, tournamentTitle, startDate } =
+      await this.patrolService.generatePatrolPdf(tournamentId);
+
+    // Sanitize tournament title for filename (remove special chars, replace spaces with dashes)
+    const sanitizedTitle = tournamentTitle
+      .replace(/[^a-zA-Z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .toLowerCase();
+    const dateStr = format(startDate, 'dd-MM-yyyy');
+    const filename = `patrols-list-${sanitizedTitle}-${dateStr}.pdf`;
 
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="patrols-${tournamentId}.pdf"`,
-      'Content-Length': pdfBuffer.length,
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
     });
 
-    res.send(pdfBuffer);
+    res.send(buffer);
   }
 
   /**
@@ -144,15 +154,23 @@ export class PatrolController {
     @Param('tournamentId') tournamentId: string,
     @Res() res: Response,
   ) {
-    const pdfBuffer =
+    const { buffer, tournamentTitle, startDate } =
       await this.patrolService.generateScoreCardsPdf(tournamentId);
+
+    // Sanitize tournament title for filename (remove special chars, replace spaces with dashes)
+    const sanitizedTitle = tournamentTitle
+      .replace(/[^a-zA-Z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .toLowerCase();
+    const dateStr = format(startDate, 'dd-MM-yyyy');
+    const filename = `score-cards-${sanitizedTitle}-${dateStr}.pdf`;
 
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="score-cards-${tournamentId}.pdf"`,
-      'Content-Length': pdfBuffer.length,
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
     });
 
-    res.send(pdfBuffer);
+    res.send(buffer);
   }
 }

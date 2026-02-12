@@ -22,7 +22,7 @@ export class ClubController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin)
   create(@Body() createClubDto: CreateClubDto) {
     return this.clubService.create(createClubDto);
   }
@@ -39,14 +39,14 @@ export class ClubController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin)
   update(@Param('id') id: string, @Body() updateClubDto: UpdateClubDto) {
     return this.clubService.update(id, updateClubDto);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin)
   remove(@Param('id') id: string) {
     return this.clubService.remove(id);
   }

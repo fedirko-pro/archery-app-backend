@@ -22,7 +22,7 @@ export class PatrolController {
   constructor(private readonly patrolService: PatrolService) {}
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.FederationAdmin)
   @Post()
   async create(@Body() data: any) {
     return this.patrolService.create(data);
@@ -44,14 +44,14 @@ export class PatrolController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.FederationAdmin)
   @Put(':id')
   async update(@Param('id') id: string, @Body() data: any) {
     return this.patrolService.update(id, data);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.FederationAdmin)
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.patrolService.remove(id);
@@ -62,14 +62,14 @@ export class PatrolController {
    * POST /patrols/:patrolId/delete-and-redistribute
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.FederationAdmin)
   @Post(':patrolId/delete-and-redistribute')
   async deleteAndRedistribute(@Param('patrolId') patrolId: string) {
     return this.patrolService.deletePatrolAndRedistribute(patrolId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.FederationAdmin)
   @Post(':patrolId/members')
   async addMember(
     @Param('patrolId') patrolId: string,
@@ -83,7 +83,7 @@ export class PatrolController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.FederationAdmin)
   @Delete(':patrolId/members/:userId')
   async removeMember(
     @Param('patrolId') patrolId: string,
@@ -97,7 +97,7 @@ export class PatrolController {
    * POST /patrols/tournaments/:tournamentId/generate
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.FederationAdmin)
   @Post('tournaments/:tournamentId/generate')
   async generatePatrols(@Param('tournamentId') tournamentId: string) {
     return this.patrolService.generatePatrolsForTournament(tournamentId);
@@ -108,7 +108,7 @@ export class PatrolController {
    * POST /patrols/tournaments/:tournamentId/generate-and-save
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.FederationAdmin)
   @Post('tournaments/:tournamentId/generate-and-save')
   async generateAndSavePatrols(@Param('tournamentId') tournamentId: string) {
     // First generate
@@ -131,6 +131,8 @@ export class PatrolController {
    * Generate PDF for patrols of a tournament
    * GET /patrols/tournaments/:tournamentId/pdf
    */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.FederationAdmin)
   @Get('tournaments/:tournamentId/pdf')
   async generatePatrolPdf(
     @Param('tournamentId') tournamentId: string,
@@ -160,6 +162,8 @@ export class PatrolController {
    * Generate PDF with score cards for all patrol members
    * GET /patrols/tournaments/:tournamentId/score-cards-pdf
    */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.FederationAdmin)
   @Get('tournaments/:tournamentId/score-cards-pdf')
   async generateScoreCardsPdf(
     @Param('tournamentId') tournamentId: string,

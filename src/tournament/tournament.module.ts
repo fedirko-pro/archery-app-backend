@@ -14,6 +14,7 @@ import { TournamentApplicationService } from './tournament-application.service';
 import { TournamentApplicationController } from './tournament-application.controller';
 import { UploadModule } from '../upload/upload.module';
 import { EmailModule } from '../email/email.module';
+import { RolePermissionsModule } from '../auth/role-permissions.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { EmailModule } from '../email/email.module';
     ]),
     UploadModule,
     EmailModule,
+    RolePermissionsModule,
   ],
   providers: [
     TournamentService,

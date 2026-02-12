@@ -9,12 +9,14 @@ import { AuthController } from './auth.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { RolesGuard } from './guards/roles.guard';
+import { RolePermissionsModule } from './role-permissions.module';
 
 @Module({
   imports: [
     UserModule,
     EmailModule,
     PassportModule,
+    RolePermissionsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

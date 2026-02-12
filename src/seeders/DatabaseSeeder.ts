@@ -46,7 +46,7 @@ export class DatabaseSeeder extends Seeder {
       password: adminPassword,
       firstName: 'Admin',
       lastName: 'User',
-      role: 'admin',
+      role: 'general_admin',
       authProvider: 'local',
       picture: 'https://i.pravatar.cc/512?img=33',
       appLanguage: 'en',

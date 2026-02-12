@@ -23,7 +23,7 @@ export class DivisionController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin)
   create(@Body() createDivisionDto: CreateDivisionDto) {
     return this.divisionService.create(createDivisionDto);
   }
@@ -40,7 +40,7 @@ export class DivisionController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin)
   update(
     @Param('id') id: string,
     @Body() updateDivisionDto: UpdateDivisionDto,
@@ -50,7 +50,7 @@ export class DivisionController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin)
   remove(@Param('id') id: string) {
     return this.divisionService.remove(id);
   }

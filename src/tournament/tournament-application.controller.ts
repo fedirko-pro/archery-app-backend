@@ -8,19 +8,25 @@ import {
   Param,
   UseGuards,
   Request,
+  ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { wrap } from '@mikro-orm/core';
 import { TournamentApplicationService } from './tournament-application.service';
+import { TournamentService } from './tournament.service';
 import { ApplicationStatus } from './tournament-application.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Roles as UserRoles } from '../user/types';
+import { PermissionsService } from '../auth/permissions.service';
 
 @Controller('tournament-applications')
 export class TournamentApplicationController {
   constructor(
     private readonly applicationService: TournamentApplicationService,
+    private readonly tournamentService: TournamentService,
+    private readonly permissionsService: PermissionsService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -44,9 +50,14 @@ export class TournamentApplicationController {
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
-  async findAll() {
-    const applications = await this.applicationService.findAll();
+  @Roles(UserRoles.GeneralAdmin, UserRoles.ClubAdmin, UserRoles.FederationAdmin)
+  async findAll(@Request() req: any) {
+    const applications =
+      req.user.role === UserRoles.GeneralAdmin
+        ? await this.applicationService.findAll()
+        : await this.applicationService.findAllByTournamentCreator(
+            req.user.sub,
+          );
     // Serialize to plain JSON to avoid class-transformer issues
     return applications.map((app) => {
       const json: any = wrap(app).toJSON();
@@ -79,8 +90,25 @@ export class TournamentApplicationController {
 
   @Get('tournament/:tournamentId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
-  async findByTournament(@Param('tournamentId') tournamentId: string) {
+  @Roles(UserRoles.GeneralAdmin, UserRoles.ClubAdmin, UserRoles.FederationAdmin)
+  async findByTournament(
+    @Param('tournamentId') tournamentId: string,
+    @Request() req: any,
+  ) {
+    let tournament;
+    try {
+      tournament = await this.tournamentService.findById(tournamentId);
+    } catch {
+      throw new NotFoundException('Tournament not found');
+    }
+    if (
+      !this.permissionsService.canViewTournamentApplications(
+        req.user,
+        tournament,
+      )
+    ) {
+      throw new ForbiddenException();
+    }
     const applications =
       await this.applicationService.findByTournament(tournamentId);
     // Serialize to plain JSON to avoid class-transformer issues
@@ -115,8 +143,25 @@ export class TournamentApplicationController {
 
   @Get('tournament/:tournamentId/stats')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
-  async getTournamentStats(@Param('tournamentId') tournamentId: string) {
+  @Roles(UserRoles.GeneralAdmin, UserRoles.ClubAdmin, UserRoles.FederationAdmin)
+  async getTournamentStats(
+    @Param('tournamentId') tournamentId: string,
+    @Request() req: any,
+  ) {
+    let tournament;
+    try {
+      tournament = await this.tournamentService.findById(tournamentId);
+    } catch {
+      throw new NotFoundException('Tournament not found');
+    }
+    if (
+      !this.permissionsService.canViewTournamentApplications(
+        req.user,
+        tournament,
+      )
+    ) {
+      throw new ForbiddenException();
+    }
     return this.applicationService.getApplicationStats(tournamentId);
   }
 
@@ -134,12 +179,15 @@ export class TournamentApplicationController {
 
   @Put(':id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.FederationAdmin)
   async updateStatus(
     @Param('id') id: string,
     @Body() data: { status: ApplicationStatus; rejectionReason?: string },
     @Request() req: any,
   ) {
+    if (!this.permissionsService.canManageApplicationsAndPdfs(req.user)) {
+      throw new ForbiddenException();
+    }
     return this.applicationService.updateStatus(
       id,
       data.status,
@@ -156,8 +204,11 @@ export class TournamentApplicationController {
 
   @Delete(':id/admin')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
-  async remove(@Param('id') id: string) {
+  @Roles(UserRoles.GeneralAdmin, UserRoles.FederationAdmin)
+  async remove(@Param('id') id: string, @Request() req: any) {
+    if (!this.permissionsService.canManageApplicationsAndPdfs(req.user)) {
+      throw new ForbiddenException();
+    }
     return this.applicationService.remove(id);
   }
 }

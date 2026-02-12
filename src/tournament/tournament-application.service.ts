@@ -150,6 +150,29 @@ export class TournamentApplicationService {
     );
   }
 
+  /**
+   * Find all applications for tournaments created by the given user (for Club/Federation admin).
+   */
+  async findAllByTournamentCreator(
+    createdByUserId: string,
+  ): Promise<TournamentApplication[]> {
+    return this.em.find(
+      TournamentApplication,
+      {
+        tournament: { createdBy: { id: createdByUserId } },
+      },
+      {
+        populate: [
+          'tournament',
+          'tournament.createdBy',
+          'applicant',
+          'division',
+          'bowCategory',
+        ],
+      },
+    );
+  }
+
   async findByTournament(
     tournamentId: string,
   ): Promise<TournamentApplication[]> {

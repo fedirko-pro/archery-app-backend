@@ -8,6 +8,7 @@ import {
   Param,
   UseGuards,
   Request,
+  ForbiddenException,
 } from '@nestjs/common';
 import { wrap } from '@mikro-orm/core';
 import { TournamentService } from './tournament.service';
@@ -15,15 +16,22 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Roles as UserRoles } from '../user/types';
+import { PermissionsService } from '../auth/permissions.service';
 
 @Controller('tournaments')
 export class TournamentController {
-  constructor(private readonly tournamentService: TournamentService) {}
+  constructor(
+    private readonly tournamentService: TournamentService,
+    private readonly permissionsService: PermissionsService,
+  ) {}
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.ClubAdmin, UserRoles.FederationAdmin)
   @Post()
   async create(@Body() data: any, @Request() req: any) {
+    if (!this.permissionsService.canCreateTournament(req.user)) {
+      throw new ForbiddenException();
+    }
     return this.tournamentService.create({ ...data, createdBy: req.user.sub });
   }
 
@@ -67,17 +75,27 @@ export class TournamentController {
     return json;
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @UseGuards(JwtAuthGuard)
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
+  async update(
+    @Param('id') id: string,
+    @Body() data: any,
+    @Request() req: any,
+  ) {
+    const tournament = await this.tournamentService.findById(id);
+    if (!this.permissionsService.canUpdateTournament(req.user, tournament)) {
+      throw new ForbiddenException();
+    }
     return this.tournamentService.update(id, data);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.FederationAdmin)
   @Delete(':id')
-  async remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string, @Request() req: any) {
+    if (!this.permissionsService.canDeleteTournament(req.user)) {
+      throw new ForbiddenException();
+    }
     return this.tournamentService.remove(id);
   }
 }

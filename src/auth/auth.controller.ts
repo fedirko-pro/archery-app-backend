@@ -3,6 +3,7 @@ import {
   Post,
   Body,
   Get,
+  Patch,
   UseGuards,
   Request,
   Res,
@@ -15,6 +16,7 @@ import { UserLoginDto } from './dto/user-login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SetPasswordDto } from './dto/set-password.dto';
+import { UpdateRolePermissionDto } from './dto/update-role-permission.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
@@ -22,12 +24,14 @@ import { Roles } from './decorators/roles.decorator';
 import { Request as ExpressRequest, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { Roles as UserRoles } from '../user/types';
+import { RolePermissionsService } from './role-permissions.service';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
+    private readonly rolePermissionsService: RolePermissionsService,
   ) {}
 
   @Post('login')
@@ -97,11 +101,31 @@ export class AuthController {
 
   @Post('admin/reset-password/:userId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.FederationAdmin)
   @HttpCode(HttpStatus.OK)
   async adminResetUserPassword(
     @Param('userId') userId: string,
   ): Promise<{ message: string }> {
     return this.authService.adminResetUserPassword(userId);
+  }
+
+  @Get('admin/role-permissions')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.ClubAdmin, UserRoles.FederationAdmin)
+  getRolePermissions() {
+    return this.rolePermissionsService.getMatrix();
+  }
+
+  @Patch('admin/role-permissions')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRoles.GeneralAdmin)
+  @HttpCode(HttpStatus.OK)
+  async updateRolePermission(@Body() dto: UpdateRolePermissionDto) {
+    await this.rolePermissionsService.setPermission(
+      dto.role,
+      dto.permissionKey,
+      dto.enabled,
+    );
+    return { message: 'OK' };
   }
 }

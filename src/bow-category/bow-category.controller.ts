@@ -23,7 +23,7 @@ export class BowCategoryController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin)
   create(@Body() createBowCategoryDto: CreateBowCategoryDto) {
     return this.bowCategoryService.create(createBowCategoryDto);
   }
@@ -45,7 +45,7 @@ export class BowCategoryController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin)
   update(
     @Param('id') id: string,
     @Body() updateBowCategoryDto: UpdateBowCategoryDto,
@@ -55,7 +55,7 @@ export class BowCategoryController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin)
   remove(@Param('id') id: string) {
     return this.bowCategoryService.remove(id);
   }

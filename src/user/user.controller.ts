@@ -18,10 +18,14 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Roles as UserRoles } from './types';
+import { PermissionsService } from '../auth/permissions.service';
 
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly permissionsService: PermissionsService,
+  ) {}
 
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
@@ -77,7 +81,7 @@ export class UserController {
   @Patch('profile')
   @UseGuards(JwtAuthGuard)
   updateProfile(@Request() req: any, @Body() updateUserDto: UpdateUserDto) {
-    const isAdmin = req.user.role === UserRoles.Admin;
+    const isAdmin = this.permissionsService.canManageUsers(req.user);
     return this.userService.update(req.user.sub, updateUserDto, isAdmin);
   }
 
@@ -93,7 +97,10 @@ export class UserController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string, @Request() req: any) {
-    if (req.user.sub !== id && req.user.role !== UserRoles.Admin) {
+    if (
+      req.user.sub !== id &&
+      !this.permissionsService.canDeleteUser(req.user)
+    ) {
       throw new ForbiddenException();
     }
     return this.userService.remove(id);
@@ -101,14 +108,14 @@ export class UserController {
 
   @Get('admin/all')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.ClubAdmin, UserRoles.FederationAdmin)
   getAllUsers() {
     return this.userService.getAllUsers();
   }
 
   @Get('admin/:userId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.ClubAdmin, UserRoles.FederationAdmin)
   async getUserById(@Param('userId') userId: string) {
     const user = await this.userService.findById(userId);
     if (!user) return null;
@@ -153,11 +160,19 @@ export class UserController {
 
   @Patch('admin/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.ClubAdmin, UserRoles.FederationAdmin)
   adminUpdateUser(
     @Param('id') id: string,
     @Body() updateUserDto: AdminUpdateUserDto,
+    @Request() req: any,
   ) {
-    return this.userService.adminUpdateUser(id, updateUserDto);
+    const dto = { ...updateUserDto };
+    if (
+      !this.permissionsService.canChangeRole(req.user) &&
+      dto.role !== undefined
+    ) {
+      delete dto.role;
+    }
+    return this.userService.adminUpdateUser(id, dto);
   }
 }

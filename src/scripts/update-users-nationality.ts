@@ -19,7 +19,7 @@ async function updateUsersNationality() {
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
       // Admin and 90% users get Portuguesa, 10% get Outro
-      if (user.role === 'admin' || i % 10 !== 0) {
+      if (user.role === 'general_admin' || i % 10 !== 0) {
         user.nationality = 'Portuguesa';
         portuguesaCount++;
       } else {

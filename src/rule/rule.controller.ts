@@ -22,7 +22,7 @@ export class RuleController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin)
   create(@Body() createRuleDto: CreateRuleDto) {
     return this.ruleService.create(createRuleDto);
   }
@@ -44,14 +44,14 @@ export class RuleController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin)
   update(@Param('id') id: string, @Body() updateRuleDto: UpdateRuleDto) {
     return this.ruleService.update(id, updateRuleDto);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.Admin)
+  @Roles(UserRoles.GeneralAdmin)
   remove(@Param('id') id: string) {
     return this.ruleService.remove(id);
   }

@@ -23,7 +23,7 @@ async function reseedTournaments() {
     console.log('✅ Cleared tournament data\n');
 
     // Fetch admin user
-    const admin = await em.findOne(User, { role: 'admin' });
+    const admin = await em.findOne(User, { role: 'general_admin' });
     if (!admin) {
       console.error('❌ Admin user not found. Please run full seeder first.');
       await orm.close();

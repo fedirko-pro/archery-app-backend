@@ -34,7 +34,7 @@ export class AdminUpdateUserDto {
 
   @IsString()
   @IsOptional()
-  @IsIn(['user', 'admin'])
+  @IsIn(['user', 'general_admin', 'club_admin', 'federation_admin'])
   role?: string;
 
   @IsString()

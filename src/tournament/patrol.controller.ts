@@ -57,6 +57,17 @@ export class PatrolController {
     return this.patrolService.remove(id);
   }
 
+  /**
+   * Delete patrol and redistribute its members into remaining patrols of the tournament.
+   * POST /patrols/:patrolId/delete-and-redistribute
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRoles.Admin)
+  @Post(':patrolId/delete-and-redistribute')
+  async deleteAndRedistribute(@Param('patrolId') patrolId: string) {
+    return this.patrolService.deletePatrolAndRedistribute(patrolId);
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRoles.Admin)
   @Post(':patrolId/members')

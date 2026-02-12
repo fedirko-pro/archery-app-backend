@@ -285,6 +285,100 @@ export class PatrolService {
     await this.em.removeAndFlush(patrolEntity);
   }
 
+  /**
+   * Delete a patrol and redistribute its members into the remaining patrols of the same tournament.
+   * Distributes to the smallest patrols first to balance sizes. Renumbers patrols so there are no gaps.
+   * Returns the updated list of patrols for the tournament.
+   */
+  async deletePatrolAndRedistribute(patrolId: string): Promise<any[]> {
+    const patrol = await this.em.findOne(
+      Patrol,
+      { id: patrolId },
+      {
+        populate: ['tournament'],
+      },
+    );
+    if (!patrol) {
+      throw new NotFoundException('Patrol not found');
+    }
+
+    const tournamentId =
+      typeof patrol.tournament === 'string'
+        ? patrol.tournament
+        : patrol.tournament.id;
+
+    const membersToRedistribute = await this.em.find(
+      PatrolMember,
+      { patrol: { id: patrolId } },
+      { fields: ['user'] },
+    );
+    const userIdsToRedistribute = [
+      ...new Set(
+        membersToRedistribute.map((m) =>
+          typeof m.user === 'string' ? m.user : m.user.id,
+        ),
+      ),
+    ];
+
+    const extractTargetNumber = (name: string): number => {
+      const match = /\d+/.exec(name);
+      return match ? Number.parseInt(match[0], 10) : 0;
+    };
+
+    const remainingPatrols = await this.em.find(Patrol, {
+      tournament: tournamentId,
+      id: { $ne: patrolId },
+    });
+    remainingPatrols.sort(
+      (a, b) => extractTargetNumber(a.name) - extractTargetNumber(b.name),
+    );
+
+    if (remainingPatrols.length === 0) {
+      throw new BadRequestException(
+        'Cannot delete the only patrol. There are no other patrols to redistribute members to.',
+      );
+    }
+
+    const memberCountByPatrolId = new Map<string, number>();
+    for (const p of remainingPatrols) {
+      const count = await this.em.count(PatrolMember, { patrol: { id: p.id } });
+      memberCountByPatrolId.set(p.id, count);
+    }
+
+    await this.remove(patrolId);
+
+    for (const userId of userIdsToRedistribute) {
+      let minPatrolId = remainingPatrols[0].id;
+      let minCount = memberCountByPatrolId.get(minPatrolId) ?? 0;
+      for (const p of remainingPatrols) {
+        const c = memberCountByPatrolId.get(p.id) ?? 0;
+        if (c < minCount) {
+          minCount = c;
+          minPatrolId = p.id;
+        }
+      }
+      await this.addMember(minPatrolId, userId, PatrolRole.MEMBER);
+      memberCountByPatrolId.set(minPatrolId, minCount + 1);
+    }
+
+    // Renumber remaining patrols so there are no gaps (Target 1, Target 2, ...)
+    const patrolsToRenumber = await this.em.find(Patrol, {
+      tournament: tournamentId,
+    });
+    patrolsToRenumber.sort(
+      (a, b) => extractTargetNumber(a.name) - extractTargetNumber(b.name),
+    );
+    for (let i = 0; i < patrolsToRenumber.length; i++) {
+      const n = i + 1;
+      patrolsToRenumber[i].name = `Target ${n}`;
+      patrolsToRenumber[i].description = `Patrol for target ${n}`;
+      patrolsToRenumber[i].updatedAt = new Date();
+    }
+    await this.em.flush();
+
+    return this.findByTournament(tournamentId);
+  }
+
   async addMember(
     patrolId: string,
     userId: string,

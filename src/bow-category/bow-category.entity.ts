@@ -8,7 +8,7 @@ export class BowCategory {
   id: string = uuid();
 
   @Property({ unique: true })
-  code: string; // Короткий код (FSC, LB, BBC, etc.)
+  code: string; // Short code (FSC, LB, BBC, etc.)
 
   @Property()
   name: string;

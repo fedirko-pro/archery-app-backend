@@ -318,7 +318,7 @@ export class TournamentApplicationService {
   ): Promise<TournamentApplication> {
     const application = await this.findById(id);
 
-    // Перевіряємо чи заявка належить користувачу
+    // Ensure the application belongs to the user
     if (application.applicant.id !== applicantId) {
       throw new BadRequestException(
         'You can only withdraw your own applications',

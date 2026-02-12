@@ -27,22 +27,22 @@ export class TournamentApplication {
   status: ApplicationStatus = ApplicationStatus.PENDING;
 
   @ManyToOne(() => Division, { nullable: true })
-  division?: Division; // Дивізіон учасника
+  division?: Division; // Participant's division
 
   @ManyToOne(() => BowCategory, { nullable: true })
-  bowCategory?: BowCategory; // Категорія лука
+  bowCategory?: BowCategory; // Bow category
 
   @Property({ nullable: true })
-  notes?: string; // Додаткові нотатки
+  notes?: string; // Additional notes
 
   @Property({ nullable: true })
-  rejectionReason?: string; // Причина відхилення
+  rejectionReason?: string; // Rejection reason
 
   @ManyToOne(() => User, { nullable: true })
-  processedBy?: User; // Адміністратор, який обробив заявку
+  processedBy?: User; // Admin who processed the application
 
   @Property({ nullable: true })
-  processedAt?: Date; // Час обробки заявки
+  processedAt?: Date; // When the application was processed
 
   @Property({ onCreate: () => new Date() })
   createdAt?: Date = new Date();

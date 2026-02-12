@@ -8,6 +8,7 @@ export const PERMISSION_KEYS = [
   'permDeleteUser',
   'permViewApplications',
   'permEditApplications',
+  'permApplyOtherUsers',
   'permPatrolsPdf',
   'permReferenceData',
   'permAccessControl',
@@ -43,6 +44,10 @@ export const DEFAULT_ROLE_PERMISSIONS_MATRIX: Array<{
   {
     permissionKey: 'permEditApplications',
     roles: [Roles.GeneralAdmin, Roles.FederationAdmin],
+  },
+  {
+    permissionKey: 'permApplyOtherUsers',
+    roles: [Roles.GeneralAdmin, Roles.ClubAdmin, Roles.FederationAdmin],
   },
   {
     permissionKey: 'permPatrolsPdf',

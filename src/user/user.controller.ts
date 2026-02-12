@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 import { UpdateUserDto, AdminUpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -111,6 +112,36 @@ export class UserController {
   @Roles(UserRoles.GeneralAdmin, UserRoles.ClubAdmin, UserRoles.FederationAdmin)
   getAllUsers() {
     return this.userService.getAllUsers();
+  }
+
+  /**
+   * Create a new user by an administrator.
+   * POST /users/admin/create
+   * TODO: Send invitation email to the user with a link to set their password.
+   */
+  @Post('admin/create')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.FederationAdmin)
+  async adminCreateUser(
+    @Body() createUserDto: AdminCreateUserDto,
+    @Request() req: any,
+  ) {
+    const creatorName =
+      `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() ||
+      req.user.email;
+    const user = await this.userService.adminCreateUser(
+      createUserDto,
+      creatorName,
+    );
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      bio: user.bio,
+      createdAt: user.createdAt,
+    };
   }
 
   @Get('admin/:userId')

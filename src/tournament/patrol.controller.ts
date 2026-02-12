@@ -130,9 +130,8 @@ export class PatrolController {
   /**
    * Generate PDF for patrols of a tournament
    * GET /patrols/tournaments/:tournamentId/pdf
+   * Note: No auth guard - PDFs use non-guessable tournament UUIDs
    */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.GeneralAdmin, UserRoles.FederationAdmin)
   @Get('tournaments/:tournamentId/pdf')
   async generatePatrolPdf(
     @Param('tournamentId') tournamentId: string,
@@ -161,9 +160,8 @@ export class PatrolController {
   /**
    * Generate PDF with score cards for all patrol members
    * GET /patrols/tournaments/:tournamentId/score-cards-pdf
+   * Note: No auth guard - PDFs use non-guessable tournament UUIDs
    */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoles.GeneralAdmin, UserRoles.FederationAdmin)
   @Get('tournaments/:tournamentId/score-cards-pdf')
   async generateScoreCardsPdf(
     @Param('tournamentId') tournamentId: string,

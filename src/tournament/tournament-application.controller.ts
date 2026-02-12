@@ -48,6 +48,41 @@ export class TournamentApplicationController {
     });
   }
 
+  /**
+   * Create a tournament application on behalf of another user (admin only).
+   * POST /tournament-applications/admin
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRoles.GeneralAdmin, UserRoles.FederationAdmin, UserRoles.ClubAdmin)
+  @Post('admin')
+  async createForUser(
+    @Body()
+    data: {
+      tournamentId: string;
+      userId: string;
+      category?: string;
+      division?: string;
+      equipment?: string;
+      notes?: string;
+    },
+    @Request() req: any,
+  ) {
+    // Build the notes with admin attribution
+    const adminName =
+      `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() ||
+      req.user.email;
+    const adminNote = `Application submitted by admin ${adminName}`;
+    const finalNotes = data.notes ? `${adminNote}\n\n${data.notes}` : adminNote;
+
+    return this.applicationService.create({
+      tournamentId: data.tournamentId,
+      applicantId: data.userId,
+      category: data.category,
+      division: data.division,
+      notes: finalNotes,
+    });
+  }
+
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRoles.GeneralAdmin, UserRoles.ClubAdmin, UserRoles.FederationAdmin)

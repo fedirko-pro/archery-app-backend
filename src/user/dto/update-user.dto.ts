@@ -1,4 +1,11 @@
-import { IsOptional, IsString, IsUrl, IsArray, IsEmail } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsUrl,
+  IsArray,
+  IsEmail,
+  ValidateIf,
+} from 'class-validator';
 
 export class UpdateUserDto {
   @IsEmail()
@@ -21,6 +28,10 @@ export class UpdateUserDto {
   location?: string;
 
   // Allow localhost URLs for development and any valid URL format
+  // Only validate URL format if picture is provided and not empty
+  @ValidateIf(
+    (o) => o.picture !== undefined && o.picture !== null && o.picture !== '',
+  )
   @IsUrl({
     require_tld: false,
     require_protocol: false,

@@ -8,6 +8,7 @@ import {
 import { EntityManager } from '@mikro-orm/core';
 import { User } from './entity/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
+import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 import { UpdateUserDto, AdminUpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Roles } from './types';
@@ -280,6 +281,8 @@ export class UserService {
         lastName: user.lastName,
         role: user.role,
         picture: user.picture,
+        bio: user.bio,
+        location: user.location,
         gender: user.gender,
         nationality: user.nationality,
         federationNumber: user.federationNumber,
@@ -348,5 +351,37 @@ export class UserService {
     await this.uploadService.cleanupUserFiles(id);
 
     await this.entityManager.removeAndFlush(user);
+  }
+
+  /**
+   * Create a new user by an administrator.
+   * The user is created without a password and must set one via password reset.
+   * TODO: Send invitation email to the user with a link to set their password.
+   */
+  async adminCreateUser(
+    data: AdminCreateUserDto,
+    creatorName: string,
+  ): Promise<User> {
+    const existing = await this.findByEmail(data.email);
+    if (existing) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    const bioText = data.comment
+      ? `User created by administrator ${creatorName}. Comment: ${data.comment}`
+      : `User created by administrator ${creatorName}`;
+
+    const user = this.entityManager.create(User, {
+      email: data.email,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      bio: bioText,
+      role: Roles.User,
+      authProvider: 'local',
+      createdAt: new Date(),
+    });
+
+    await this.entityManager.persistAndFlush(user);
+    return user;
   }
 }

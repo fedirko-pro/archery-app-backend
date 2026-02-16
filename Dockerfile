@@ -3,9 +3,7 @@
 # =========================
 FROM node:22-alpine AS base
 
-# Встановлюємо pnpm через corepack
 RUN corepack enable && corepack prepare pnpm@latest --activate
-
 WORKDIR /app
 
 # =========================
@@ -13,9 +11,9 @@ WORKDIR /app
 # =========================
 FROM base AS deps
 
-# Копіюємо package.json та pnpm-lock
-COPY ./package*.json ./ 
-COPY ./pnpm-workspace.yaml ./
+# Копіюємо package.json та pnpm-workspace.yaml з папки src
+COPY ./src/package*.json ./ 
+COPY ./src/pnpm-workspace.yaml ./ 
 
 # Встановлення залежностей
 RUN pnpm install --no-frozen-lockfile
@@ -30,10 +28,10 @@ WORKDIR /app
 # Копіюємо залежності з попереднього етапу
 COPY --from=deps /app/node_modules ./node_modules
 
-# Копіюємо весь код
-COPY . .
+# Копіюємо весь код з src
+COPY ./src ./ 
 
-# Запуск збірки NestJS
+# Збірка NestJS
 RUN pnpm run build
 
 # =========================

@@ -29,7 +29,6 @@ WORKDIR /app
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist/src ./dist
 COPY --from=build /app/package.json ./package.json
-COPY --from=build /app/.env ./.env
 
 # Створюємо потрібні директорії для аплоадів
 RUN mkdir -p uploads/images/avatars uploads/images/banners uploads/attachments pdf/rules

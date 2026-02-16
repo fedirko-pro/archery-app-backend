@@ -1,22 +1,44 @@
+# =========================
+# БАЗОВИЙ СТЕЙДЖ
+# =========================
 FROM node:22-alpine AS base
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-FROM base AS deps
 WORKDIR /app
+
+# =========================
+# ВСТАНОВЛЕННЯ ЗАЛЕЖНОСТЕЙ
+# =========================
+FROM base AS deps
+
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
+# =========================
+# ЗБІРКА ПРОЕКТУ
+# =========================
 FROM base AS build
-WORKDIR /app
+
+# Копіюємо node_modules зі стадії deps
 COPY --from=deps /app/node_modules ./node_modules
+
+# Копіюємо весь код проекту
 COPY . .
+
+# Збираємо проект NestJS
 RUN pnpm run build
 
-FROM base AS runner
-WORKDIR /app
+# Перевірка: чи існує dist/main.js
+RUN if [ ! -f dist/main.js ]; then echo "❌ dist/main.js не знайдено!"; exit 1; fi
 
+# =========================
+# РАННЕР ДЛЯ ПРОДУКЦІЇ
+# =========================
+FROM base AS runner
+
+WORKDIR /app
 ENV NODE_ENV=production
 
 # Copy required files

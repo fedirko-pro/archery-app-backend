@@ -20,11 +20,11 @@ const config: Options = {
     glob: '!(*.d).{js,ts}',
   },
   seeder: {
-    path: './dist/src/seeders', // 👈 Оновлено
-    pathTs: './src/seeders',
+    path: './dist/src/seeders',
+    pathTs: './dist/src/seeders', // 👈 Примушуємо шукати скомпільовані JS файли
     defaultSeeder: 'DatabaseSeeder',
     glob: '!(*.d).{js,ts}',
-    emit: 'ts',
+    // emit: 'ts', 👈 Цей рядок краще взагалі видалити або закоментувати для production
   },
 };
 

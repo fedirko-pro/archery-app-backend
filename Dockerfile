@@ -1,47 +1,50 @@
 # =========================
-# Базовий образ
+# Базовий образ Node + pnpm
 # =========================
 FROM node:22-alpine AS base
 
 # Встановлюємо pnpm через corepack
 RUN corepack enable && corepack prepare pnpm@latest --activate
+
 WORKDIR /app
 
 # =========================
-# Крок для залежностей
+# Встановлення залежностей
 # =========================
 FROM base AS deps
 
-# Копіюємо тільки файли, потрібні для встановлення залежностей
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Копіюємо package.json та pnpm-lock
+COPY ./package*.json ./ 
+COPY ./pnpm-workspace.yaml ./
+
+# Встановлення залежностей
 RUN pnpm install --no-frozen-lockfile
 
 # =========================
-# Крок збірки
+# Збірка проекту
 # =========================
 FROM base AS build
 
-# Копіюємо node_modules від deps
+WORKDIR /app
+
+# Копіюємо залежності з попереднього етапу
 COPY --from=deps /app/node_modules ./node_modules
 
-# Копіюємо весь бекенд у контейнер
+# Копіюємо весь код
 COPY . .
 
-# Збираємо NestJS проект
+# Запуск збірки NestJS
 RUN pnpm run build
 
-# Перевірка: чи існує dist/main.js
-RUN ls -la dist
-
 # =========================
-# Крок запуску
+# Фінальний образ для продакшн
 # =========================
-FROM base AS runner
+FROM node:22-alpine AS runner
 
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Копіюємо зібраний код та node_modules
+# Копіюємо зібраний код та залежності
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./
@@ -49,7 +52,7 @@ COPY --from=build /app/mikro-orm.config.ts ./
 COPY --from=build /app/tsconfig.json ./
 COPY --from=build /app/tsconfig.build.json ./
 
-# Створюємо папки для uploads та PDF
+# Створення директорій для uploads та PDF
 RUN mkdir -p uploads/images/avatars \
     uploads/images/banners \
     uploads/attachments \

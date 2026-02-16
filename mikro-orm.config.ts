@@ -12,7 +12,7 @@ const config: Options = {
   entitiesTs: ['./src/**/*.entity.ts'],
   debug: process.env.NODE_ENV !== 'production',
   migrations: {
-    path: './src/migrations',
+    path: './dist/migrations', // 👈 ЗМІНЕНО ТУТ
     pathTs: './src/migrations',
     glob: '!(*.d).{js,ts}',
   },

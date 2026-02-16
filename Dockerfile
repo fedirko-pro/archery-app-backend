@@ -1,57 +1,60 @@
 # =========================
-# БАЗОВИЙ СТЕЙДЖ
+# Базовий образ
 # =========================
 FROM node:22-alpine AS base
 
-# Встановлюємо pnpm
+# Встановлення pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
 # =========================
-# ВСТАНОВЛЕННЯ ЗАЛЕЖНОСТЕЙ
+# Встановлення залежностей
 # =========================
 FROM base AS deps
 
-COPY ./src/package*.json ./
-COPY ./src/pnpm-workspace.yaml ./
+# Копіюємо package.json та lockfile
+COPY ./src/package.json ./src/pnpm-workspace.yaml ./
 
-RUN pnpm install --frozen-lockfile
+# Встановлюємо залежності без frozen-lockfile (щоб уникнути проблем)
+RUN pnpm install --no-frozen-lockfile
 
 # =========================
-# ЗБІРКА ПРОЕКТУ
+# Збірка проекту
 # =========================
 FROM base AS build
 
-# Копіюємо node_modules зі стадії deps
+WORKDIR /app
+
+# Копіюємо node_modules з deps
 COPY --from=deps /app/node_modules ./node_modules
 
-# Копіюємо весь код проекту
-COPY . .
+# Копіюємо src та інші конфігурації
+COPY ./src ./src
+COPY ./src/package.json ./package.json
+COPY ./src/tsconfig*.json ./
+COPY ./src/mikro-orm.config.ts ./
 
-# Збираємо проект NestJS
+# Збираємо NestJS проект
 RUN pnpm run build
 
-# Перевірка: чи існує dist/main.js
-RUN if [ ! -f dist/main.js ]; then echo "❌ dist/main.js не знайдено!"; exit 1; fi
-
 # =========================
-# РАННЕР ДЛЯ ПРОДУКЦІЇ
+# Фінальний образ
 # =========================
 FROM base AS runner
 
 WORKDIR /app
+
 ENV NODE_ENV=production
 
-# Копіюємо збірку та необхідні файли
+# Копіюємо з build тільки те, що потрібно для запуску
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./
 COPY --from=build /app/mikro-orm.config.ts ./
-COPY --from=build /app/tsconfig.json ./
-COPY --from=build /app/tsconfig.build.json ./
+COPY --from=build /app/tsconfig*.json ./
 
-# Створюємо папки для uploads та pdf
+# Створення директорій для uploads та PDF
 RUN mkdir -p uploads/images/avatars \
     uploads/images/banners \
     uploads/attachments \

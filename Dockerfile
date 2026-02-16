@@ -27,7 +27,7 @@ WORKDIR /app
 
 # Копіюємо залежності і збірку
 COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/dist/src ./dist
+COPY --from=build /app/dist ./dist
 COPY --from=build /app/package.json ./package.json
 
 # Створюємо потрібні директорії для аплоадів

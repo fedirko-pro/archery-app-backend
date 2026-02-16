@@ -15,16 +15,15 @@ const config: Options = {
   
   debug: process.env.NODE_ENV !== 'production',
   migrations: {
-    path: './dist/src/migrations', // 👈 Оновлено
-    pathTs: './src/migrations',
+    path: './dist/src/migrations',
+    pathTs: './src/migrations', // 👈 Змінюємо назад на src
     glob: '!(*.d).{js,ts}',
   },
   seeder: {
     path: './dist/src/seeders',
-    pathTs: './dist/src/seeders', // 👈 Примушуємо шукати скомпільовані JS файли
+    pathTs: './src/seeders', // 👈 Змінюємо назад на src
     defaultSeeder: 'DatabaseSeeder',
     glob: '!(*.d).{js,ts}',
-    // emit: 'ts', 👈 Цей рядок краще взагалі видалити або закоментувати для production
   },
 };
 

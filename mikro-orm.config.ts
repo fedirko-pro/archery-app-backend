@@ -21,7 +21,7 @@ const config: Options = {
   },
   seeder: {
     path: './dist/src/seeders',
-    pathTs: './src/seeders', // 👈 Змінюємо назад на src
+    pathTs: './dist/src/seeders', // 👈 Повертаємо на dist!
     defaultSeeder: 'DatabaseSeeder',
     glob: '!(*.d).{js,ts}',
   },

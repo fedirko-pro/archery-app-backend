@@ -284,26 +284,31 @@ export class BowCategorySeeder extends Seeder {
       },
     ];
 
-    const createdBowCategories: BowCategory[] = [];
+    const toPersist: BowCategory[] = [];
     for (const catData of bowCategories) {
-      const rule = getRuleForCategory(catData.ruleReference);
-      const bowCategory = em.create(BowCategory, {
-        code: catData.code,
-        name: catData.name,
-        descriptionEn: catData.descriptionEn,
-        descriptionPt: catData.descriptionPt,
-        descriptionIt: catData.descriptionIt,
-        descriptionUk: catData.descriptionUk,
-        descriptionEs: catData.descriptionEs,
-        ruleReference: catData.ruleReference,
-        ruleCitation: catData.ruleCitation,
-        rule: rule,
-      });
-      createdBowCategories.push(bowCategory);
+      const existing = await em.findOne(BowCategory, { code: catData.code });
+      if (!existing) {
+        const rule = getRuleForCategory(catData.ruleReference);
+        const bowCategory = em.create(BowCategory, {
+          code: catData.code,
+          name: catData.name,
+          descriptionEn: catData.descriptionEn,
+          descriptionPt: catData.descriptionPt,
+          descriptionIt: catData.descriptionIt,
+          descriptionUk: catData.descriptionUk,
+          descriptionEs: catData.descriptionEs,
+          ruleReference: catData.ruleReference,
+          ruleCitation: catData.ruleCitation,
+          rule: rule,
+        });
+        toPersist.push(bowCategory);
+      }
     }
 
-    await em.persistAndFlush(createdBowCategories);
-    console.log(`✅ ${createdBowCategories.length} Bow Categories created`);
+    await em.persistAndFlush(toPersist);
+    console.log(
+      `✅ ${toPersist.length} Bow Categories created (${bowCategories.length - toPersist.length} already existed)`,
+    );
 
     console.log('\n🎉 Bow Category seeding completed!');
   }

@@ -78,11 +78,18 @@ export class RuleSeeder extends Seeder {
       },
     ];
 
+    const toPersist: Rule[] = [];
     for (const ruleData of rules) {
-      const rule = em.create(Rule, ruleData);
-      await em.persistAndFlush(rule);
+      const existing = await em.findOne(Rule, { ruleCode: ruleData.ruleCode });
+      if (!existing) {
+        const rule = em.create(Rule, ruleData);
+        toPersist.push(rule);
+      }
     }
+    await em.persistAndFlush(toPersist);
 
-    console.log(`✅ ${rules.length} rules created`);
+    console.log(
+      `✅ ${toPersist.length} rules created (${rules.length - toPersist.length} already existed)`,
+    );
   }
 }

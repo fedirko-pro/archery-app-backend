@@ -89,11 +89,20 @@ export class ClubSeeder extends Seeder {
       },
     ];
 
+    const toPersist: Club[] = [];
     for (const clubData of clubs) {
-      const club = em.create(Club, clubData);
-      await em.persistAndFlush(club);
+      const existing = await em.findOne(Club, {
+        shortCode: clubData.shortCode,
+      });
+      if (!existing) {
+        const club = em.create(Club, clubData);
+        toPersist.push(club);
+      }
     }
+    await em.persistAndFlush(toPersist);
 
-    console.log(`✅ ${clubs.length} clubs created`);
+    console.log(
+      `✅ ${toPersist.length} clubs created (${clubs.length - toPersist.length} already existed)`,
+    );
   }
 }

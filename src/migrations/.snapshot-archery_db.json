@@ -26,6 +26,16 @@
           "length": 255,
           "mappedType": "string"
         },
+        "short_code": {
+          "name": "short_code",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
         "description": {
           "name": "description",
           "type": "varchar(255)",
@@ -86,6 +96,48 @@
             "id"
           ],
           "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {},
+      "nativeEnums": {}
+    },
+    {
+      "columns": {
+        "role": {
+          "name": "role",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "permission_key": {
+          "name": "permission_key",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 255,
+          "mappedType": "string"
+        }
+      },
+      "name": "role_permission",
+      "schema": "public",
+      "indexes": [
+        {
+          "keyName": "role_permission_pkey",
+          "columnNames": [
+            "role",
+            "permission_key"
+          ],
+          "composite": true,
           "constraint": true,
           "primary": true,
           "unique": true
@@ -340,7 +392,6 @@
             "id"
           ],
           "referencedTableName": "public.rule",
-          "createForeignKeyConstraint": true,
           "updateRule": "cascade"
         }
       },
@@ -510,7 +561,6 @@
             "id"
           ],
           "referencedTableName": "public.rule",
-          "createForeignKeyConstraint": true,
           "updateRule": "cascade"
         }
       },
@@ -745,7 +795,6 @@
             "id"
           ],
           "referencedTableName": "public.club",
-          "createForeignKeyConstraint": true,
           "deleteRule": "set null",
           "updateRule": "cascade"
         }
@@ -939,7 +988,6 @@
             "id"
           ],
           "referencedTableName": "public.user",
-          "createForeignKeyConstraint": true,
           "updateRule": "cascade"
         },
         "tournament_rule_id_foreign": {
@@ -952,7 +1000,6 @@
             "id"
           ],
           "referencedTableName": "public.rule",
-          "createForeignKeyConstraint": true,
           "deleteRule": "set null",
           "updateRule": "cascade"
         }
@@ -1109,7 +1156,6 @@
             "id"
           ],
           "referencedTableName": "public.tournament",
-          "createForeignKeyConstraint": true,
           "updateRule": "cascade"
         },
         "tournament_application_applicant_id_foreign": {
@@ -1122,7 +1168,6 @@
             "id"
           ],
           "referencedTableName": "public.user",
-          "createForeignKeyConstraint": true,
           "updateRule": "cascade"
         },
         "tournament_application_division_id_foreign": {
@@ -1135,7 +1180,6 @@
             "id"
           ],
           "referencedTableName": "public.division",
-          "createForeignKeyConstraint": true,
           "deleteRule": "set null",
           "updateRule": "cascade"
         },
@@ -1149,7 +1193,6 @@
             "id"
           ],
           "referencedTableName": "public.bow_category",
-          "createForeignKeyConstraint": true,
           "deleteRule": "set null",
           "updateRule": "cascade"
         },
@@ -1163,7 +1206,6 @@
             "id"
           ],
           "referencedTableName": "public.user",
-          "createForeignKeyConstraint": true,
           "deleteRule": "set null",
           "updateRule": "cascade"
         }
@@ -1269,7 +1311,6 @@
             "id"
           ],
           "referencedTableName": "public.tournament",
-          "createForeignKeyConstraint": true,
           "updateRule": "cascade"
         },
         "patrol_leader_id_foreign": {
@@ -1282,7 +1323,6 @@
             "id"
           ],
           "referencedTableName": "public.user",
-          "createForeignKeyConstraint": true,
           "updateRule": "cascade"
         }
       },
@@ -1377,7 +1417,6 @@
             "id"
           ],
           "referencedTableName": "public.patrol",
-          "createForeignKeyConstraint": true,
           "updateRule": "cascade"
         },
         "patrol_member_user_id_foreign": {
@@ -1390,7 +1429,6 @@
             "id"
           ],
           "referencedTableName": "public.user",
-          "createForeignKeyConstraint": true,
           "updateRule": "cascade"
         }
       },

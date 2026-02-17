@@ -19,6 +19,9 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "mikro-orm": "mikro-orm",
+    "migration:clear": "rm -f src/migrations/Migration*.ts src/migrations/.snapshot*.json dist/src/migrations/Migration*.js dist/src/migrations/Migration*.js.map dist/src/migrations/Migration*.d.ts dist/src/migrations/.snapshot*.json",
+    "migration:clear-db-history": "docker-compose exec db sh -c 'psql -U archery_user -d archery_db -c \"TRUNCATE TABLE mikro_orm_migrations;\"'",
+    "migration:initial": "mikro-orm migration:create --initial",
     "generate-pdf-icons": "ts-node scripts/generate-pdf-icons.ts",
     "prepare": "husky"
   },

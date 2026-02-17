@@ -39,26 +39,31 @@ export class DatabaseSeeder extends Seeder {
     const clubs = await em.find(Club, {});
     console.log(`✅ Found ${clubs.length} clubs for user assignment`);
 
-    // Create admin user first
-    const adminPassword = await bcrypt.hash('admin123', 10);
-    const admin = em.create(User, {
-      email: 'admin@archery.com',
-      password: adminPassword,
-      firstName: 'Admin',
-      lastName: 'User',
-      role: 'general_admin',
-      authProvider: 'local',
-      picture: 'https://i.pravatar.cc/512?img=33',
-      appLanguage: 'en',
-      nationality: 'Portuguesa',
-      gender: 'M',
-      federationNumber: generateFederationNumber(),
-      club: clubs.length > 0 ? clubs[0] : undefined,
-    });
-    await em.persistAndFlush(admin);
-    console.log('✅ Admin user created');
+    // Create admin user first (idempotent by email)
+    let admin = await em.findOne(User, { email: 'admin@archery.com' });
+    if (!admin) {
+      const adminPassword = await bcrypt.hash('admin123', 10);
+      admin = em.create(User, {
+        email: 'admin@archery.com',
+        password: adminPassword,
+        firstName: 'Admin',
+        lastName: 'User',
+        role: 'general_admin',
+        authProvider: 'local',
+        picture: 'https://i.pravatar.cc/512?img=33',
+        appLanguage: 'en',
+        nationality: 'Portuguesa',
+        gender: 'M',
+        federationNumber: generateFederationNumber(),
+        club: clubs.length > 0 ? clubs[0] : undefined,
+      });
+      em.persist(admin);
+      console.log('✅ Admin user created');
+    } else {
+      console.log('ℹ️  Admin user already exists');
+    }
 
-    // Create 90 regular users (total 91 with admin)
+    // Create 90 regular users (total 91 with admin) - idempotent by email
     const users: User[] = [admin];
     const userPassword = await bcrypt.hash('user123', 10);
 
@@ -300,6 +305,12 @@ export class DatabaseSeeder extends Seeder {
     ];
 
     for (let i = 0; i < 90; i++) {
+      const email = `user${i + 1}@archery.com`;
+      const existing = await em.findOne(User, { email });
+      if (existing) {
+        users.push(existing);
+        continue;
+      }
       // 90% Portuguesa, 10% Outro (indices 0-8 are Outro, rest are Portuguesa)
       const nationality = i < 9 ? 'Outro' : 'Portuguesa';
       const firstName = firstNames[i % firstNames.length];
@@ -312,7 +323,7 @@ export class DatabaseSeeder extends Seeder {
           : clubs[Math.floor(Math.random() * clubs.length)];
 
       const user = em.create(User, {
-        email: `user${i + 1}@archery.com`,
+        email,
         password: userPassword,
         firstName,
         lastName,
@@ -327,9 +338,9 @@ export class DatabaseSeeder extends Seeder {
       });
       users.push(user);
     }
-    await em.persistAndFlush(users);
+    await em.flush();
     console.log(
-      '✅ 90 regular users created (with nationality, gender, federation number, and club)',
+      `✅ ${users.length} users ready (with nationality, gender, federation number, and club)`,
     );
 
     // Fetch rules for tournament assignment
@@ -396,6 +407,15 @@ export class DatabaseSeeder extends Seeder {
       const startDate = new Date(now);
       startDate.setDate(now.getDate() + i * 15 + 10); // Tournaments every 15 days starting in 10 days
 
+      const existingTournament = await em.findOne(Tournament, {
+        title: tournamentNames[i],
+        startDate,
+      });
+      if (existingTournament) {
+        tournaments.push(existingTournament);
+        continue;
+      }
+
       const endDate = new Date(startDate);
       endDate.setDate(startDate.getDate() + (i % 3 === 0 ? 2 : 1)); // Some tournaments are 2 days
 
@@ -419,10 +439,11 @@ export class DatabaseSeeder extends Seeder {
         createdBy: admin,
         rule,
       });
+      em.persist(tournament);
       tournaments.push(tournament);
     }
-    await em.persistAndFlush(tournaments);
-    console.log('✅ 10 tournaments created with banners');
+    await em.flush();
+    console.log('✅ 10 tournaments ready with banners');
 
     // Get divisions for application assignment
     const divisions = await em.find(Division, {});
@@ -456,6 +477,14 @@ export class DatabaseSeeder extends Seeder {
       }
 
       for (const user of applicants) {
+        const existingApp = await em.findOne(TournamentApplication, {
+          tournament,
+          applicant: user,
+        });
+        if (existingApp) {
+          continue;
+        }
+
         // 90% approved, 10% pending
         const status =
           Math.random() < 0.9
@@ -497,10 +526,11 @@ export class DatabaseSeeder extends Seeder {
           notes:
             Math.random() > 0.7 ? 'Looking forward to this event!' : undefined,
         });
+        em.persist(application);
         applications.push(application);
       }
     }
-    await em.persistAndFlush(applications);
+    await em.flush();
     console.log(
       `✅ ${applications.length} tournament applications created (with divisions and bow categories)`,
     );

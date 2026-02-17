@@ -24,13 +24,13 @@ export class FABPRotaSeeder extends Seeder {
         descriptionPt:
           'Federação de Arco e Besta de Portugal - Regras da Rota dos Castelos',
       });
-      await em.persistAndFlush(fabpRule);
+      em.persist(fabpRule);
       console.log('✅ Rule created: FABP Rota dos Castelos');
     } else {
       console.log('ℹ️  Rule already exists: FABP Rota dos Castelos');
     }
 
-    // Create Divisions (combining age and gender) - check for existing
+    // Create Divisions (combining age and gender) - check for existing by name + rule
     const divisionsData = [
       { name: 'Cub Male', description: 'Boys under 12 years' },
       { name: 'Cub Female', description: 'Girls under 12 years' },
@@ -44,14 +44,17 @@ export class FABPRotaSeeder extends Seeder {
 
     let divisionsCreated = 0;
     for (const div of divisionsData) {
-      const existing = await em.findOne(Division, { name: div.name });
+      const existing = await em.findOne(Division, {
+        name: div.name,
+        rule: fabpRule,
+      });
       if (!existing) {
         const division = em.create(Division, {
           name: div.name,
           description: div.description,
           rule: fabpRule,
         });
-        await em.persistAndFlush(division);
+        em.persist(division);
         divisionsCreated++;
       }
     }
@@ -108,10 +111,11 @@ export class FABPRotaSeeder extends Seeder {
           descriptionEn: cat.descriptionEn,
           rule: fabpRule,
         });
-        await em.persistAndFlush(bowCategory);
+        em.persist(bowCategory);
         categoriesCreated++;
       }
     }
+    await em.flush();
     console.log(
       `✅ ${categoriesCreated} new Bow Categories created (${bowCategoriesData.length - categoriesCreated} already existed)`,
     );

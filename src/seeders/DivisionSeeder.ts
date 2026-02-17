@@ -45,7 +45,7 @@ export class DivisionSeeder extends Seeder {
             description: div.description,
             rule,
           });
-          await em.persistAndFlush(division);
+          em.persist(division);
           created++;
         }
       }
@@ -55,6 +55,7 @@ export class DivisionSeeder extends Seeder {
       );
     }
 
+    await em.flush();
     console.log(`\n✅ ${totalCreated} divisions created for main rules`);
   }
 }

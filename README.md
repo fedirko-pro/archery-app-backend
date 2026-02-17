@@ -146,26 +146,59 @@ If you prefer to use a local PostgreSQL installation:
 
 ## 🗃️ Database Migrations
 
+The database runs in Docker (`docker compose up -d`). Migrations run **from your host** and connect to `localhost:5432` (the container exposes this port). Ensure the DB container is running before any migration command.
+
 ### Running Migrations
 
-1. **Generate a new migration** (when you modify entities)
+1. **Ensure the database container is running**
+   ```bash
+   docker compose up -d
+   docker compose ps   # optional: verify db is up
+   ```
+
+2. **Generate a new migration** (when you modify entities)
    ```bash
    pnpm run mikro-orm migration:create
    ```
 
-2. **Run pending migrations**
+3. **Run pending migrations**
    ```bash
    pnpm run mikro-orm migration:up
    ```
 
-3. **Check migration status**
+4. **Check migration status**
    ```bash
    pnpm run mikro-orm migration:list
    ```
 
-4. **Revert the last migration**
+5. **Revert the last migration**
    ```bash
    pnpm run mikro-orm migration:down
+   ```
+
+### Reset migrations and create a single initial migration
+
+Use this when existing migration files are out of sync and you want one fresh initial migration from current entities.
+
+1. **Start the database** (so the CLI can connect):
+   ```bash
+   docker compose up -d
+   ```
+
+2. **Remove old migration files** in both `src/migrations` and `dist/src/migrations` (no DB connection needed). The CLI uses `dist`, so both must be cleared:
+   ```bash
+   pnpm run migration:clear
+   ```
+
+3. **Clear migration history in the database.** MikroORM refuses to create an initial migration if the `mikro_orm_migrations` table has any rows. With the DB in Docker:
+   ```bash
+   pnpm run migration:clear-db-history
+   ```
+   Or run manually: `docker-compose exec db psql -U archery_user -d archery_db -c "TRUNCATE TABLE mikro_orm_migrations;"`
+
+4. **Generate the initial migration** (requires DB running):
+   ```bash
+   pnpm run migration:initial
    ```
 
 ### Migration Commands Reference
@@ -173,6 +206,15 @@ If you prefer to use a local PostgreSQL installation:
 ```bash
 # Create a new migration
 pnpm run mikro-orm migration:create
+
+# Create initial migration (clean slate; DB must be running)
+pnpm run migration:initial
+
+# Remove all migration files and snapshots (no DB needed)
+pnpm run migration:clear
+
+# Clear migration history in DB (required before migration:initial if migrations were run before)
+pnpm run migration:clear-db-history
 
 # Run all pending migrations
 pnpm run mikro-orm migration:up

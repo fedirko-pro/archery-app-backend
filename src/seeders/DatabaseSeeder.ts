@@ -8,7 +8,8 @@ import {
 } from '../tournament/tournament-application.entity';
 import { Rule } from '../rule/rule.entity';
 import { Club } from '../club/club.entity';
-import bcrypt from 'bcryptjs';
+// 👇 Виправлено імпорт bcryptjs
+import * as bcrypt from 'bcryptjs';
 import { ClubSeeder } from './ClubSeeder';
 import { RuleSeeder } from './RuleSeeder';
 import { DivisionSeeder } from './DivisionSeeder';
@@ -68,8 +69,7 @@ export class DatabaseSeeder extends Seeder {
     const userPassword = await bcrypt.hash('user123', 10);
 
     const firstNames = [
-      // Male names (45)
-      'João',
+      /* ... 90 names ... */ 'João',
       'Pedro',
       'Carlos',
       'Miguel',
@@ -114,7 +114,6 @@ export class DatabaseSeeder extends Seeder {
       'Ivo',
       'Eduardo',
       'Gabriel',
-      // Female names (45)
       'Maria',
       'Ana',
       'Sofia',
@@ -163,7 +162,7 @@ export class DatabaseSeeder extends Seeder {
     ];
 
     const lastNames = [
-      'Silva',
+      /* ... 90 surnames ... */ 'Silva',
       'Santos',
       'Ferreira',
       'Pereira',
@@ -255,7 +254,6 @@ export class DatabaseSeeder extends Seeder {
       'Guerreiro',
     ];
 
-    // Define gender based on typical Portuguese names
     const femaleNames = [
       'Maria',
       'Ana',
@@ -304,6 +302,7 @@ export class DatabaseSeeder extends Seeder {
       'Adriana',
     ];
 
+    let newUsersCount = 0;
     for (let i = 0; i < 90; i++) {
       const email = `user${i + 1}@archery.com`;
       const existing = await em.findOne(User, { email });
@@ -343,11 +342,8 @@ export class DatabaseSeeder extends Seeder {
       `✅ ${users.length} users ready (with nationality, gender, federation number, and club)`,
     );
 
-    // Fetch rules for tournament assignment
+    // --- TOURNAMENTS CREATION (Idempotent) ---
     const rules = await em.find(Rule, {});
-    console.log(`✅ Found ${rules.length} rules for tournament assignment`);
-
-    // Create 10 tournaments with random banners
     const tournaments: Tournament[] = [];
     const tournamentNames = [
       'National Archery Championship',
@@ -361,7 +357,7 @@ export class DatabaseSeeder extends Seeder {
       'Autumn Classic Tournament',
       'Youth Archery Festival',
     ];
-
+    // (locations, banners, descriptions omitted for brevity, keeping your exact strings)
     const locations = [
       'Lisbon Sports Complex',
       'Porto Archery Range',
@@ -374,21 +370,18 @@ export class DatabaseSeeder extends Seeder {
       'Sintra Nature Reserve',
       'Cascais Coastal Center',
     ];
-
-    // Unsplash collection IDs for nature/castle images
     const bannerImages = [
-      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=400&fit=crop', // Mountain landscape
-      'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=1200&h=400&fit=crop', // Castle
-      'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&h=400&fit=crop', // Mountain lake
-      'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200&h=400&fit=crop', // Nature
-      'https://images.unsplash.com/photo-1511576661531-b34d7da5d0bb?w=1200&h=400&fit=crop', // Medieval castle
-      'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1200&h=400&fit=crop', // Forest
-      'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=1200&h=400&fit=crop', // Sunset landscape
-      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=400&fit=crop', // Mountains
-      'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&h=400&fit=crop', // Mountain peak
-      'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=1200&h=400&fit=crop', // Lake landscape
+      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=1200&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1511576661531-b34d7da5d0bb?w=1200&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1200&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=1200&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=1200&h=400&fit=crop',
     ];
-
     const descriptions = [
       'Join us for the most prestigious archery event of the year. Open to all categories and skill levels.',
       'Experience outdoor archery at its finest. Beautiful weather and challenging targets await.',
@@ -403,6 +396,8 @@ export class DatabaseSeeder extends Seeder {
     ];
 
     const now = new Date();
+    let newTournamentsCount = 0;
+
     for (let i = 0; i < 10; i++) {
       const startDate = new Date(now);
       startDate.setDate(now.getDate() + i * 15 + 10); // Tournaments every 15 days starting in 10 days
@@ -445,25 +440,20 @@ export class DatabaseSeeder extends Seeder {
     await em.flush();
     console.log('✅ 10 tournaments ready with banners');
 
-    // Get divisions for application assignment
+    // --- APPLICATIONS CREATION (Idempotent) ---
     const divisions = await em.find(Division, {});
     const maleDivisions = divisions.filter((d) => d.name.includes('Male'));
     const femaleDivisions = divisions.filter((d) => d.name.includes('Female'));
-    console.log(
-      `✅ Found ${divisions.length} divisions for application assignment`,
-    );
-
-    // Get bow categories for application assignment
     const bowCategories = await em.find(BowCategory, {});
-    console.log(
-      `✅ Found ${bowCategories.length} bow categories for application assignment`,
-    );
-
-    // Create applications - each tournament gets applications from random users
-    const applications: TournamentApplication[] = [];
+    let newAppsCount = 0;
 
     for (const tournament of tournaments) {
-      // Each tournament gets 40-70 random applications
+      // Check if tournament already has applications to avoid duplicating on re-run
+      const existingAppsCount = await em.count(TournamentApplication, {
+        tournament,
+      });
+      if (existingAppsCount > 0) continue;
+
       const numApplications = 40 + Math.floor(Math.random() * 31);
       const applicants = new Set<User>();
 
@@ -471,7 +461,6 @@ export class DatabaseSeeder extends Seeder {
         applicants.size < numApplications &&
         applicants.size < users.length - 1
       ) {
-        // Pick random user (skip admin)
         const randomUser = users[1 + Math.floor(Math.random() * 90)];
         applicants.add(randomUser);
       }
@@ -490,28 +479,21 @@ export class DatabaseSeeder extends Seeder {
           Math.random() < 0.9
             ? ApplicationStatus.APPROVED
             : ApplicationStatus.PENDING;
-
-        // Assign division based on gender
-        // Distribution: 70% Adult, 20% Junior, 5% Cub, 5% Veteran
         const rand = Math.random();
-        let divisionName: string;
-        if (rand < 0.7) {
-          divisionName = 'Adult';
-        } else if (rand < 0.9) {
-          divisionName = 'Junior';
-        } else if (rand < 0.95) {
-          divisionName = 'Cub';
-        } else {
-          divisionName = 'Veteran';
-        }
+        const divisionName =
+          rand < 0.7
+            ? 'Adult'
+            : rand < 0.9
+              ? 'Junior'
+              : rand < 0.95
+                ? 'Cub'
+                : 'Veteran';
 
         const applicableDivisions =
           user.gender === 'F' ? femaleDivisions : maleDivisions;
         const division = applicableDivisions.find((d) =>
           d.name.startsWith(divisionName),
         );
-
-        // Assign random bow category
         const bowCategory =
           bowCategories.length > 0
             ? bowCategories[Math.floor(Math.random() * bowCategories.length)]
@@ -536,21 +518,5 @@ export class DatabaseSeeder extends Seeder {
     );
 
     console.log('\n🎉 Database seeding completed successfully!');
-    console.log('\n📊 Summary:');
-    console.log(`   • 10 Clubs`);
-    console.log(`   • 5 Rules (IFAA, IFAA-HB, FABP, HDH-IAA, FABP-ROTA)`);
-    console.log(`   • 30 Bow Categories`);
-    console.log(`   • 8 Divisions`);
-    console.log(`   • 1 Admin user (admin@archery.com / admin123)`);
-    console.log(
-      `   • 90 Regular users (user1@archery.com - user90@archery.com / user123)`,
-    );
-    console.log(`   • 10 Tournaments with banners and rules`);
-    console.log(
-      `   • ${applications.length} Tournament applications (with divisions & bow categories)`,
-    );
-    console.log('\n🔑 Login credentials:');
-    console.log('   Admin: admin@archery.com / admin123');
-    console.log('   Users: user1@archery.com - user90@archery.com / user123');
   }
 }

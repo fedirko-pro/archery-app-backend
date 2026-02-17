@@ -40,7 +40,9 @@ export class DatabaseSeeder extends Seeder {
     const clubs = await em.find(Club, {});
     console.log(`✅ Found ${clubs.length} clubs for user assignment`);
 
-    // Create admin user first (idempotent by email)
+    const users: User[] = [];
+
+    // --- ADMIN CREATION (Idempotent) ---
     let admin = await em.findOne(User, { email: 'admin@archery.com' });
     if (!admin) {
       const adminPassword = await bcrypt.hash('admin123', 10);
@@ -61,11 +63,11 @@ export class DatabaseSeeder extends Seeder {
       em.persist(admin);
       console.log('✅ Admin user created');
     } else {
-      console.log('ℹ️  Admin user already exists');
+      console.log('ℹ️ Admin user already exists');
     }
+    users.push(admin);
 
-    // Create 90 regular users (total 91 with admin) - idempotent by email
-    const users: User[] = [admin];
+    // --- REGULAR USERS CREATION (Idempotent) ---
     const userPassword = await bcrypt.hash('user123', 10);
 
     const firstNames = [
@@ -305,41 +307,40 @@ export class DatabaseSeeder extends Seeder {
     let newUsersCount = 0;
     for (let i = 0; i < 90; i++) {
       const email = `user${i + 1}@archery.com`;
-      const existing = await em.findOne(User, { email });
-      if (existing) {
-        users.push(existing);
-        continue;
-      }
-      // 90% Portuguesa, 10% Outro (indices 0-8 are Outro, rest are Portuguesa)
-      const nationality = i < 9 ? 'Outro' : 'Portuguesa';
-      const firstName = firstNames[i % firstNames.length];
-      const lastName = lastNames[i % lastNames.length];
-      const gender = femaleNames.includes(firstName) ? 'F' : 'M';
-      // Assign random club (some users may have no club - 5% chance)
-      const club =
-        Math.random() < 0.05
-          ? undefined
-          : clubs[Math.floor(Math.random() * clubs.length)];
+      let user = await em.findOne(User, { email });
 
-      const user = em.create(User, {
-        email,
-        password: userPassword,
-        firstName,
-        lastName,
-        role: 'user',
-        authProvider: 'local',
-        picture: `https://i.pravatar.cc/512?img=${(i % 70) + 1}`,
-        appLanguage: i % 2 === 0 ? 'pt' : 'en',
-        nationality,
-        gender,
-        federationNumber: generateFederationNumber(),
-        club,
-      });
+      if (!user) {
+        const nationality = i < 9 ? 'Outro' : 'Portuguesa';
+        const firstName = firstNames[i % firstNames.length];
+        const lastName = lastNames[i % lastNames.length];
+        const gender = femaleNames.includes(firstName) ? 'F' : 'M';
+        const club =
+          Math.random() < 0.05
+            ? undefined
+            : clubs[Math.floor(Math.random() * clubs.length)];
+
+        user = em.create(User, {
+          email,
+          password: userPassword,
+          firstName,
+          lastName,
+          role: 'user',
+          authProvider: 'local',
+          picture: `https://i.pravatar.cc/512?img=${(i % 70) + 1}`,
+          appLanguage: i % 2 === 0 ? 'pt' : 'en',
+          nationality,
+          gender,
+          federationNumber: generateFederationNumber(),
+          club,
+        });
+        em.persist(user);
+        newUsersCount++;
+      }
       users.push(user);
     }
     await em.flush();
     console.log(
-      `✅ ${users.length} users ready (with nationality, gender, federation number, and club)`,
+      `✅ ${newUsersCount} new regular users created (${90 - newUsersCount} already existed)`,
     );
 
     // --- TOURNAMENTS CREATION (Idempotent) ---
@@ -399,46 +400,40 @@ export class DatabaseSeeder extends Seeder {
     let newTournamentsCount = 0;
 
     for (let i = 0; i < 10; i++) {
-      const startDate = new Date(now);
-      startDate.setDate(now.getDate() + i * 15 + 10); // Tournaments every 15 days starting in 10 days
+      const title = tournamentNames[i];
+      let tournament = await em.findOne(Tournament, { title });
 
-      const existingTournament = await em.findOne(Tournament, {
-        title: tournamentNames[i],
-        startDate,
-      });
-      if (existingTournament) {
-        tournaments.push(existingTournament);
-        continue;
+      if (!tournament) {
+        const startDate = new Date(now);
+        startDate.setDate(now.getDate() + i * 15 + 10);
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + (i % 3 === 0 ? 2 : 1));
+        const rule = rules.length > 0 ? rules[i % rules.length] : undefined;
+        const applicationDeadline = new Date(startDate);
+        applicationDeadline.setDate(startDate.getDate() - 5);
+
+        tournament = em.create(Tournament, {
+          title,
+          description: descriptions[i],
+          address: locations[i],
+          startDate,
+          endDate,
+          applicationDeadline,
+          allowMultipleApplications: i % 3 !== 0,
+          targetCount: 12 + (i % 3) * 6,
+          banner: bannerImages[i],
+          createdBy: admin,
+          rule,
+        });
+        em.persist(tournament);
+        newTournamentsCount++;
       }
-
-      const endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + (i % 3 === 0 ? 2 : 1)); // Some tournaments are 2 days
-
-      // Assign a rule to each tournament (cycle through available rules)
-      const rule = rules.length > 0 ? rules[i % rules.length] : undefined;
-
-      // Set application deadline to 5 days before start
-      const applicationDeadline = new Date(startDate);
-      applicationDeadline.setDate(startDate.getDate() - 5);
-
-      const tournament = em.create(Tournament, {
-        title: tournamentNames[i],
-        description: descriptions[i],
-        address: locations[i],
-        startDate,
-        endDate,
-        applicationDeadline,
-        allowMultipleApplications: i % 3 !== 0, // 2/3 allow multiple applications
-        targetCount: 12 + (i % 3) * 6, // 12, 18, or 24 targets
-        banner: bannerImages[i],
-        createdBy: admin,
-        rule,
-      });
-      em.persist(tournament);
       tournaments.push(tournament);
     }
     await em.flush();
-    console.log('✅ 10 tournaments ready with banners');
+    console.log(
+      `✅ ${newTournamentsCount} new tournaments created (${10 - newTournamentsCount} already existed)`,
+    );
 
     // --- APPLICATIONS CREATION (Idempotent) ---
     const divisions = await em.find(Division, {});
@@ -466,15 +461,6 @@ export class DatabaseSeeder extends Seeder {
       }
 
       for (const user of applicants) {
-        const existingApp = await em.findOne(TournamentApplication, {
-          tournament,
-          applicant: user,
-        });
-        if (existingApp) {
-          continue;
-        }
-
-        // 90% approved, 10% pending
         const status =
           Math.random() < 0.9
             ? ApplicationStatus.APPROVED
@@ -509,13 +495,11 @@ export class DatabaseSeeder extends Seeder {
             Math.random() > 0.7 ? 'Looking forward to this event!' : undefined,
         });
         em.persist(application);
-        applications.push(application);
+        newAppsCount++;
       }
     }
     await em.flush();
-    console.log(
-      `✅ ${applications.length} tournament applications created (with divisions and bow categories)`,
-    );
+    console.log(`✅ ${newAppsCount} new tournament applications created`);
 
     console.log('\n🎉 Database seeding completed successfully!');
   }

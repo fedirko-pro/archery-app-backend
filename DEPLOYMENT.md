@@ -217,5 +217,5 @@ docker image prune -f
 
 ### Seeded Test Credentials (after seeding)
 
-- **Admin:** admin@example.com / admin123
-- **Standard Users:** user1@example.com to user90@example.com / password
+- **Admin:** admin@archery.com / admin123
+- **Standard Users:** user1@archery.com to user90@archery.com / user123

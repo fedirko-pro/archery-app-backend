@@ -1,382 +1,221 @@
-# Deployment Guide - VPS Ubuntu з Docker
+# Deployment Guide - VPS Ubuntu with Docker & Traefik
 
-Цей гайд описує деплой архері застосунку (бекенд + фронтенд) на VPS сервер з Ubuntu.
+This guide describes the deployment of the Archery application (Backend + Frontend) using **Traefik** as a Reverse Proxy with automatic SSL (Let's Encrypt).
 
-## Структура на сервері
+---
 
+## 1. Global Infrastructure (Traefik)
+
+Instead of manual Nginx configs, we use Traefik. It communicates with Docker to route traffic based on labels.
+
+### 1.1. Create Shared Network
+
+```bash
+docker network create traefik-public
 ```
-/srv/
-├── archery-api/
-│   ├── docker-compose.yml    # Копія з deploy/docker-compose.api.yml
-│   ├── .env                  # Змінні оточення
-│   ├── uploads/              # Завантажені файли (images, attachments)
-│   ├── pdf/                  # PDF файли (правила)
-│   │   └── rules/
-│   └── src/                  # Git репозиторій (archery-app-backend)
-│
-└── archery-front/
-    ├── docker-compose.yml    # Копія з deploy/docker-compose.front.yml
-    ├── .env                  # Змінні оточення для build
-    └── src/                  # Git репозиторій (app-archery)
+
+### 1.2. Traefik Configuration (/srv/proxy/docker-compose.yml)
+
+Note: Ensure `DOCKER_API_VERSION` matches your host's Docker engine (standard is 1.44).
+
+```yaml
+version: "3.9"
+
+services:
+  traefik:
+    image: traefik:v3
+    container_name: traefik
+    restart: unless-stopped
+    environment:
+      - DOCKER_API_VERSION=1.44
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.le.acme.httpchallenge=true"
+      - "--certificatesresolvers.le.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.le.acme.email=your-email@gmail.com"
+      - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+    networks:
+      - traefik-public
+
+networks:
+  traefik-public:
+    external: true
 ```
 
 ---
 
-## Передумови
+## 2. Backend (API) Setup
 
-- VPS з Ubuntu 22.04+
-- Docker та Docker Compose встановлені
-- SSH доступ
-- Домен налаштований (опціонально для HTTPS)
+### 2.1. Crucial Code Adjustment
 
-### Встановлення Docker (якщо ще не встановлено)
+Ensure `src/main.ts` listens on `0.0.0.0` to accept traffic from the Traefik proxy:
 
-```bash
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER
-newgrp docker
+```typescript
+// Inside bootstrap() function
+await app.listen(3000, '0.0.0.0');
+```
+
+### 2.2. Backend Configuration (/srv/archery/archery-api/docker-compose.yml)
+
+```yaml
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: archery_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - default
+
+  api:
+    build:
+      context: ./src
+      dockerfile: ../Dockerfile
+    container_name: archery_api
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    networks:
+      - default
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+      - "traefik.http.routers.archery-api.rule=Host(`api-archery.fedirko.pro`)"
+      - "traefik.http.routers.archery-api.entrypoints=websecure"
+      - "traefik.http.routers.archery-api.tls.certresolver=le"
+      - "traefik.http.services.archery-api.loadbalancer.server.port=3000"
+    command: >
+      sh -c "pnpm mikro-orm migration:up && pnpm mikro-orm seeder:run && node dist/src/main"
+
+networks:
+  default:
+  traefik-public:
+    external: true
 ```
 
 ---
 
-## 1. Підготовка Backend (API)
+## 3. Frontend Setup
 
-### 1.1. Створення директорій
+### 3.1. Dockerfile Healthcheck Fix
 
-```bash
-sudo mkdir -p /srv/archery-api/{uploads/images/avatars,uploads/images/banners,uploads/attachments,pdf/rules}
-sudo chown -R $USER:$USER /srv/archery-api
+In `src/Dockerfile`, ensure the healthcheck doesn't fail due to missing wget or curl:
+
+```dockerfile
+# Use netcat (nc) to verify port 80 is open
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD nc -z localhost 80 || exit 1
 ```
 
-### 1.2. Клонування репозиторію
+### 3.2. Frontend Configuration (/srv/archery/archery-front/docker-compose.yml)
 
-```bash
-cd /srv/archery-api
-git clone https://github.com/YOUR_ORG/archery-app-backend.git src
-```
+```yaml
+version: "3.9"
 
-### 1.3. Налаштування docker-compose.yml
+services:
+  frontend:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_GOOGLE_AUTH_URL: ${VITE_GOOGLE_AUTH_URL}
+    container_name: archery_frontend
+    restart: unless-stopped
+    networks:
+      - default
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+      - "traefik.http.routers.archery-front.rule=Host(`archery.fedirko.pro`)"
+      - "traefik.http.routers.archery-front.entrypoints=websecure"
+      - "traefik.http.routers.archery-front.tls.certresolver=le"
+      - "traefik.http.services.archery-front.loadbalancer.server.port=80"
 
-```bash
-cp src/deploy/docker-compose.api.yml docker-compose.yml
-```
-
-### 1.4. Створення .env файлу
-
-```bash
-cp src/.env.example src/.env
-nano src/.env
-```
-
-**Важливі змінні для продакшену:**
-
-```env
-# Database
-DATABASE_HOST=db
-DATABASE_PORT=5432
-DATABASE_USER=archery_user
-DATABASE_PASSWORD=STRONG_RANDOM_PASSWORD_HERE
-DATABASE_NAME=archery_db
-
-# JWT
-JWT_SECRET=VERY_LONG_RANDOM_STRING_HERE
-
-# Google OAuth
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_CALLBACK_URL=https://api.yourdomain.com/auth/google/callback
-
-# URLs
-FRONTEND_URL=https://yourdomain.com
-BACKEND_URL=https://api.yourdomain.com
-
-# Server
-PORT=3000
-NODE_ENV=production
-```
-
-### 1.5. Копіювання PDF файлів (правил)
-
-```bash
-cp -r src/pdf/rules/*.pdf pdf/rules/
-```
-
-### 1.6. Запуск бекенду
-
-```bash
-cd /srv/archery-api
-docker compose up -d --build
-
-# Перевірка логів
-docker compose logs -f api
-
-# Застосування міграцій
-docker compose exec api sh -c "node node_modules/.bin/mikro-orm migration:up"
-
-# Запуск сідерів (тільки для першого деплою!)
-docker compose exec api sh -c "node node_modules/.bin/mikro-orm seeder:run"
+networks:
+  default:
+  traefik-public:
+    external: true
 ```
 
 ---
 
-## 2. Підготовка Frontend
+## 4. Maintenance & Updates
 
-### 2.1. Створення директорій
-
-```bash
-sudo mkdir -p /srv/archery-front
-sudo chown -R $USER:$USER /srv/archery-front
-```
-
-### 2.2. Клонування репозиторію
+### Update Backend (Code + Migrations)
 
 ```bash
-cd /srv/archery-front
-git clone https://github.com/YOUR_ORG/app-archery.git src
-```
-
-### 2.3. Налаштування docker-compose.yml
-
-```bash
-cp src/deploy/docker-compose.front.yml docker-compose.yml
-```
-
-### 2.4. Створення .env файлу
-
-```bash
-cat > .env << EOF
-VITE_API_BASE_URL=https://api.yourdomain.com
-VITE_GOOGLE_AUTH_URL=https://api.yourdomain.com/auth/google
-EOF
-```
-
-### 2.5. Запуск фронтенду
-
-```bash
-cd /srv/archery-front
-docker compose up -d --build
-
-# Перевірка логів
-docker compose logs -f frontend
-```
-
----
-
-## 3. Налаштування Nginx Reverse Proxy
-
-### 3.1. Встановлення Nginx
-
-```bash
-sudo apt install nginx -y
-```
-
-### 3.2. Конфігурація для API (api.yourdomain.com)
-
-```bash
-sudo nano /etc/nginx/sites-available/archery-api
-```
-
-```nginx
-server {
-    listen 80;
-    server_name api.yourdomain.com;
-
-    client_max_body_size 10M;
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
-### 3.3. Конфігурація для Frontend (yourdomain.com)
-
-```bash
-sudo nano /etc/nginx/sites-available/archery-front
-```
-
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com www.yourdomain.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-### 3.4. Активація конфігурацій
-
-```bash
-sudo ln -s /etc/nginx/sites-available/archery-api /etc/nginx/sites-enabled/
-sudo ln -s /etc/nginx/sites-available/archery-front /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
----
-
-## 4. Налаштування HTTPS (Let's Encrypt)
-
-```bash
-sudo apt install certbot python3-certbot-nginx -y
-sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com -d api.yourdomain.com
-```
-
-Certbot автоматично налаштує HTTPS та оновлення сертифікатів.
-
----
-
-## 5. Оновлення додатку
-
-### Backend
-
-```bash
-cd /srv/archery-api/src
-git pull origin main
-cd ..
-docker compose up -d --build
-
-# Застосування нових міграцій (якщо є)
-docker compose exec api sh -c "node node_modules/.bin/mikro-orm migration:up"
-```
-
-### Frontend
-
-```bash
-cd /srv/archery-front/src
-git pull origin main
-cd ..
+cd /srv/archery/archery-api
+git pull
 docker compose up -d --build
 ```
 
----
+Migrations and Seeders will run automatically during the container startup.
 
-## 6. Корисні команди
-
-### Перегляд логів
+### Update Frontend
 
 ```bash
-# API логи
-docker compose -f /srv/archery-api/docker-compose.yml logs -f api
-
-# Frontend логи
-docker compose -f /srv/archery-front/docker-compose.yml logs -f frontend
-
-# Database логи
-docker compose -f /srv/archery-api/docker-compose.yml logs -f db
+cd /srv/archery/archery-front
+git pull
+docker compose up -d --build --force-recreate
 ```
 
-### Перезапуск сервісів
-
-```bash
-# API
-docker compose -f /srv/archery-api/docker-compose.yml restart api
-
-# Frontend
-docker compose -f /srv/archery-front/docker-compose.yml restart frontend
-```
-
-### Backup бази даних
-
-```bash
-cd /srv/archery-api
-docker compose exec db pg_dump -U archery_user archery_db > backup_$(date +%Y%m%d_%H%M%S).sql
-```
-
-### Restore бази даних
-
-```bash
-cd /srv/archery-api
-docker compose exec -T db psql -U archery_user archery_db < backup.sql
-```
-
-### Очищення Docker
-
-```bash
-# Видалення невикористаних образів
-docker image prune -a
-
-# Видалення всього невикористаного
-docker system prune -a
-```
+Note: `--build` is required to bake new `.env` values into the static production files.
 
 ---
 
-## 7. Troubleshooting
+## 5. Troubleshooting & Tips
 
-### API не запускається
+### Check Container Health
 
-```bash
-# Перевірка логів
-docker compose -f /srv/archery-api/docker-compose.yml logs api
-
-# Перевірка змінних оточення
-docker compose -f /srv/archery-api/docker-compose.yml exec api env
-
-# Перевірка підключення до БД
-docker compose -f /srv/archery-api/docker-compose.yml exec api sh -c "nc -zv db 5432"
-```
-
-### Проблеми з міграціями
+If you see a 404 Bad Gateway, it means Traefik is running but cannot "see" your app. Traefik ignores containers that are in the unhealthy state.
 
 ```bash
-# Перевірка статусу міграцій
-docker compose exec api sh -c "node node_modules/.bin/mikro-orm migration:list"
-
-# Відкат останньої міграції
-docker compose exec api sh -c "node node_modules/.bin/mikro-orm migration:down"
+docker ps  # Check if status is "Up (healthy)" or "Up (unhealthy)"
 ```
 
-### Проблеми з правами на uploads
+### Viewing Logs
 
 ```bash
-sudo chown -R 1000:1000 /srv/archery-api/uploads
-sudo chmod -R 755 /srv/archery-api/uploads
+docker logs -f archery_api         # Backend/DB Migration logs
+docker logs -f archery_frontend    # Nginx/Frontend logs
+docker logs -f traefik             # SSL and Routing logs
 ```
 
----
+### Clean Up Old Images
 
-## 8. Безпека
+To save disk space from multiple builds:
 
-1. **Firewall (ufw)**
-   ```bash
-   sudo ufw allow 22/tcp
-   sudo ufw allow 80/tcp
-   sudo ufw allow 443/tcp
-   sudo ufw enable
-   ```
+```bash
+docker image prune -f
+```
 
-2. **Fail2ban**
-   ```bash
-   sudo apt install fail2ban -y
-   sudo systemctl enable fail2ban
-   ```
+### Seeded Test Credentials (after seeding)
 
-3. **Регулярні оновлення**
-   ```bash
-   sudo apt update && sudo apt upgrade -y
-   ```
-
----
-
-## Тестові облікові дані (після сідінгу)
-
-- **Admin**: `admin@archery.com` / `admin123`
-- **Users**: `user1@archery.com` - `user90@archery.com` / `user123`
-
-⚠️ **Змініть паролі перед продакшеном!**
+- **Admin:** admin@example.com / admin123
+- **Standard Users:** user1@example.com to user90@example.com / password

@@ -29,8 +29,49 @@ export class UserController {
   ) {}
 
   @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.create(createUserDto);
+  async create(@Body() createUserDto: CreateUserDto) {
+    // Public signup: ignore role so users cannot self-assign admin
+    const dto = { ...createUserDto } as CreateUserDto & { role?: string };
+    delete dto.role;
+    const user = await this.userService.create(dto as CreateUserDto);
+    const {
+      id,
+      email,
+      role,
+      firstName,
+      lastName,
+      picture,
+      bio,
+      location,
+      appLanguage,
+      federationNumber,
+      nationality,
+      gender,
+      categories,
+      club,
+      createdAt,
+      updatedAt,
+    } = user as any;
+    return {
+      id,
+      email,
+      role,
+      firstName,
+      lastName,
+      picture,
+      bio,
+      location,
+      language: appLanguage ?? undefined,
+      appLanguage: appLanguage ?? undefined,
+      federationNumber,
+      nationality,
+      gender,
+      categories: categories ?? [],
+      clubId: club?.id ?? null,
+      club: club ? { id: club.id, name: club.name } : null,
+      createdAt,
+      updatedAt,
+    };
   }
 
   @Get('profile')

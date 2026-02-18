@@ -12,7 +12,7 @@ import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 import { UpdateUserDto, AdminUpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Roles } from './types';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 import { UploadService } from '../upload/upload.service';
 import { Club } from '../club/club.entity';
 

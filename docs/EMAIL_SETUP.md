@@ -1,7 +1,7 @@
 # Email Service Setup
 
 ## Overview
-The email service is implemented using Nodemailer and supports SMTP for sending emails. It's configured to work with various email providers.
+The email service is implemented using Nodemailer and supports SMTP for sending emails. All emails are sent in the **recipient's preferred language** (`appLanguage` field on the `User` entity). If no language is set the app default (`pt`) is used.
 
 ## Environment Variables
 
@@ -33,14 +33,72 @@ SMTP_FROM_NAME=Archery App
 **Notes:**
 - **Welcome email** requires `firstName` — enforced by `CreateUserDto` (`@IsNotEmpty`) for email signup; Google strategy always provides `name.givenName` with a fallback to the email username prefix.
 - **Invitation email** includes the inviting admin's name and a set-password link valid for **24 hours** (reuses the `resetPasswordToken` mechanism). The link leads to the existing `/reset-password` page.
-- **Welcome email is fire-and-forget** — a failed email send never blocks or fails the signup.
+- **Password reset body** is intentionally passive ("We received a request…") so it reads correctly whether the user or an admin triggered it.
+- All non-critical emails are **fire-and-forget** — a failed send never blocks or fails the triggering operation.
 
 All emails use:
 - **HTML + plain text** (fallback for clients that don't render HTML)
 - **Consistent layout:** header → content → footer ("automated / do not reply")
+- **Localised content:** subject, body, button labels, month names and role descriptions all come from the i18n translation files
 - **From:** `SMTP_FROM_NAME` and `SMTP_FROM_EMAIL` (set in env)
 
-### Template folder structure
+---
+
+## Internationalisation (i18n)
+
+Emails are sent in the language stored in the recipient's `appLanguage` field. If that field is `null` or unrecognised, the app default (`pt`) is used.
+
+### Supported languages
+
+| Code (DB) | Language   |
+|-----------|-----------|
+| `pt`      | Portuguese |
+| `en`      | English    |
+| `es`      | Spanish    |
+| `it`      | Italian    |
+| `uk` / `ua` | Ukrainian (the app stores `ua`, both resolve correctly) |
+
+### Translation files
+
+```
+src/email/i18n/
+├── types.ts      # EmailI18n interface — all translatable strings typed
+├── en.ts         # English
+├── pt.ts         # Portuguese
+├── es.ts         # Spanish
+├── it.ts         # Italian
+├── uk.ts         # Ukrainian
+└── index.ts      # getEmailI18n(locale?) + interpolate() helper
+```
+
+**`getEmailI18n(locale?)`** — returns the `EmailI18n` object for the given locale, normalising `'ua' → 'uk'` and falling back to `'pt'` when the locale is unknown or null.
+
+**`interpolate(template, vars)`** — replaces `{{variable}}` placeholders in a string.
+
+### `EmailI18n` interface sections
+
+| Section | Content |
+|---------|---------|
+| `footer` | "This is an automated email…" note |
+| `passwordReset` | Subject, heading, body, button, expiry, ignore note |
+| `welcome` | Subject, heading, greeting, intro, 4 feature bullets, help note |
+| `invitation` | Subject, heading, body, button, expiry, ignore note |
+| `applicationSubmitted` | Subject, heading, labels, wait message, 12 month names |
+| `applicationStatus` | Subject×2, heading×2, approved/rejected blocks, feedback label |
+| `roleChanged` | Subject, heading, body, permissions heading, role labels, role permissions |
+
+### Adding a new language
+1. Create `src/email/i18n/xx.ts` implementing the full `EmailI18n` interface
+2. Add it to the map in `src/email/i18n/index.ts`:
+   ```ts
+   import { xx } from './xx';
+   const translations = { en, es, it, pt, uk, xx };
+   ```
+3. Add the locale to the frontend's `SUPPORTED_APP_LANGS` in `src/utils/i18n-lang.ts`
+
+---
+
+## Template folder structure
 
 Templates live under `src/email/templates/`:
 
@@ -48,32 +106,39 @@ Templates live under `src/email/templates/`:
 src/email/templates/
 ├── index.ts                        # Re-exports theme, layout + all content templates
 ├── theme.ts                        # Design tokens (colors, sizes) + style helpers → inline strings
-├── layout.ts                       # wrapEmail(contentHtml, contentText) → full email
+├── layout.ts                       # wrapEmail(contentHtml, contentText, footerText?) → full email
 ├── partials/
 │   ├── header.ts                   # Shared header (HTML + text)
-│   └── footer.ts                   # Shared footer (HTML + text)
-├── password-reset.template.ts          # getPasswordResetContent({ resetUrl })
-├── welcome.template.ts                 # getWelcomeContent({ firstName })
-├── application-submitted.template.ts   # getApplicationSubmittedContent({ applicantName, tournamentTitle, startDate, endDate?, location?, myApplicationsUrl })
-├── application-status.template.ts      # getApplicationStatusContent({ applicantName, tournamentTitle, status, rejectionReason?, myApplicationsUrl })
-├── role-changed.template.ts            # getRoleChangedContent({ recipientName, adminName, oldRole, newRole, profileUrl })
-└── invitation.template.ts              # getInvitationContent({ recipientName, adminName, setPasswordUrl })
+│   └── footer.ts                   # buildFooterHtml(text) / buildFooterText(text)
+├── password-reset.template.ts          # getPasswordResetContent(params, t)
+├── welcome.template.ts                 # getWelcomeContent(params, t)
+├── application-submitted.template.ts   # getApplicationSubmittedContent(params, t)
+├── application-status.template.ts      # getApplicationStatusContent(params, t)
+├── role-changed.template.ts            # getRoleChangedContent(params, t)
+└── invitation.template.ts              # getInvitationContent(params, t)
 ```
 
-- **Theme:** `theme.ts` holds design tokens (`theme.colors`, `theme.sizes`) and helpers (`styleHeading()`, `styleButton()`, etc.) that return inline style strings. All templates use these — change a token once and every email updates. The final HTML always has styles inline for email-client compatibility.
-- **Common parts:** `partials/header.ts` and `partials/footer.ts` are the shared top and bottom. `layout.ts` exports `wrapEmail(contentHtml, contentText)`, which assembles the full email.
-- **Content templates:** Each email type has its own file exporting a `get*Content(params)` function that returns `{ html, text }` for the middle section only. `EmailService` calls `wrapEmail(content.html, content.text)` to build the complete email.
+- **Theme:** `theme.ts` holds design tokens (`theme.colors`, `theme.sizes`) and helpers (`styleHeading()`, `styleButton()`, etc.) that return inline style strings.
+- **Footer:** now a function `buildFooterHtml(text)` — `wrapEmail` accepts an optional `footerText` so the "do not reply" note is also translated.
+- **Content templates:** each function accepts `(params, t: EmailI18n)` and returns `{ html, text }`.
 
 **Adding a new email type:**
-1. Create `src/email/templates/your-type.template.ts` with `getYourTypeContent(params): { html, text }`
-2. Use theme helpers for styling (e.g. `styleButton()`, `styleHeading()`)
-3. Export it from `templates/index.ts`
-4. Add `sendYourTypeEmail()` to `EmailService` following the same 3-line pattern:
+1. Create `src/email/templates/your-type.template.ts`:
    ```ts
-   const content = getYourTypeContent(params);
-   const { html, text } = wrapEmail(content.html, content.text);
-   await this.sendEmail({ to, subject, html, text });
+   import type { EmailI18n } from '../i18n';
+   export function getYourTypeContent(params, t: EmailI18n): { html, text } { … }
    ```
+2. Add translatable strings to `EmailI18n` in `src/email/i18n/types.ts` and all 5 locale files
+3. Export it from `templates/index.ts`
+4. Add `sendYourTypeEmail(…, locale?: string)` to `EmailService`:
+   ```ts
+   const t = getEmailI18n(locale);
+   const content = getYourTypeContent(params, t);
+   const { html, text } = wrapEmail(content.html, content.text, t.footer);
+   await this.sendEmail({ to, subject: t.yourType.subject, html, text });
+   ```
+
+---
 
 ## Email Provider Setup
 
@@ -149,29 +214,36 @@ curl -X POST http://localhost:3000/email/test \
 
 ## Available `EmailService` Methods
 
+All methods accept an optional trailing `locale?: string` parameter that controls email language.
+
 | Method | Params | Notes |
 |--------|--------|-------|
 | `sendEmail(options)` | `{ to, subject, html, text? }` | Generic low-level send |
-| `sendPasswordResetEmail(email, _token, resetUrl)` | — | Token stored in DB; link expires in 1h |
-| `sendWelcomeEmail(email, firstName)` | — | Sent on every new registration |
-| `sendApplicationSubmittedEmail(email, applicantName, tournamentTitle, startDate, endDate?, location?)` | — | Sent when user submits a tournament application |
-| `sendApplicationStatusEmail(email, applicantName, tournamentTitle, status, rejectionReason?)` | `status: 'approved' \| 'rejected'` | Sent when admin updates application status |
-| `sendRoleChangedEmail(email, recipientName, adminName, oldRole, newRole)` | — | Sent when admin changes a user's role; includes permission list |
-| `sendInvitationEmail(email, recipientName, adminName, setPasswordUrl)` | — | Sent when admin creates a user; link valid 24h |
+| `sendPasswordResetEmail(email, _token, resetUrl, locale?)` | — | Token stored in DB; link expires in 1h; body is passive ("We received a request…") |
+| `sendWelcomeEmail(email, firstName, locale?)` | — | Sent on every new registration |
+| `sendApplicationSubmittedEmail(email, applicantName, tournamentTitle, startDate, endDate?, location?, locale?)` | — | Sent when user submits a tournament application |
+| `sendApplicationStatusEmail(email, applicantName, tournamentTitle, status, rejectionReason?, locale?)` | `status: 'approved' \| 'rejected'` | Sent when admin updates application status |
+| `sendRoleChangedEmail(email, recipientName, adminName, oldRole, newRole, locale?)` | — | Sent when admin changes a user's role; includes permission list |
+| `sendInvitationEmail(email, recipientName, adminName, setPasswordUrl, locale?)` | — | Sent when admin creates a user; link valid 24h |
 
 ## Usage in Other Services
 
 ```typescript
 import { EmailService } from '../email/email.service';
+import { getEmailI18n, interpolate } from '../email/i18n';
+import { wrapEmail, getYourTypeContent } from '../email/templates';
 
 @Injectable()
 export class YourService {
   constructor(private readonly emailService: EmailService) {}
 
-  async someMethod() {
-    const content = getYourTypeContent(params);
-    const { html, text } = wrapEmail(content.html, content.text);
-    await this.emailService.sendEmail({ to, subject, html, text });
+  async someMethod(user: User) {
+    // Always pass the recipient's locale — never the current admin's locale
+    await this.emailService.sendYourTypeEmail(
+      user.email,
+      /* …params… */
+      user.appLanguage,   // ← recipient locale
+    );
   }
 }
 ```

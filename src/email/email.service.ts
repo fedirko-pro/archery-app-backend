@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import { SentMessageInfo } from 'nodemailer';
+
+import { getEmailI18n, interpolate } from './i18n';
 import {
   wrapEmail,
   getPasswordResetContent,
@@ -102,16 +104,17 @@ export class EmailService {
     recipientName: string,
     adminName: string,
     setPasswordUrl: string,
+    locale?: string,
   ): Promise<void> {
-    const content = getInvitationContent({
-      recipientName,
-      adminName,
-      setPasswordUrl,
-    });
-    const { html, text } = wrapEmail(content.html, content.text);
+    const t = getEmailI18n(locale);
+    const content = getInvitationContent(
+      { recipientName, adminName, setPasswordUrl },
+      t,
+    );
+    const { html, text } = wrapEmail(content.html, content.text, t.footer);
     await this.sendEmail({
       to: email,
-      subject: `You're invited to Archery App`,
+      subject: t.invitation.subject,
       html,
       text,
     });
@@ -123,19 +126,24 @@ export class EmailService {
     adminName: string,
     oldRole: string,
     newRole: string,
+    locale?: string,
   ): Promise<void> {
+    const t = getEmailI18n(locale);
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-    const content = getRoleChangedContent({
-      recipientName,
-      adminName,
-      oldRole,
-      newRole,
-      profileUrl: `${frontendUrl}/profile`,
-    });
-    const { html, text } = wrapEmail(content.html, content.text);
+    const content = getRoleChangedContent(
+      {
+        recipientName,
+        adminName,
+        oldRole,
+        newRole,
+        profileUrl: `${frontendUrl}/profile`,
+      },
+      t,
+    );
+    const { html, text } = wrapEmail(content.html, content.text, t.footer);
     await this.sendEmail({
       to: email,
-      subject: `Your role has been updated – Archery App`,
+      subject: t.roleChanged.subject,
       html,
       text,
     });
@@ -145,26 +153,28 @@ export class EmailService {
     email: string,
     _resetToken: string,
     resetUrl: string,
+    locale?: string,
   ): Promise<void> {
-    const content = getPasswordResetContent({ resetUrl });
-    const { html, text } = wrapEmail(content.html, content.text);
+    const t = getEmailI18n(locale);
+    const content = getPasswordResetContent({ resetUrl }, t);
+    const { html, text } = wrapEmail(content.html, content.text, t.footer);
     await this.sendEmail({
       to: email,
-      subject: 'Password Reset Request',
+      subject: t.passwordReset.subject,
       html,
       text,
     });
   }
 
-  async sendWelcomeEmail(email: string, firstName: string): Promise<void> {
-    const content = getWelcomeContent({ firstName });
-    const { html, text } = wrapEmail(content.html, content.text);
-    await this.sendEmail({
-      to: email,
-      subject: 'Welcome to Archery App!',
-      html,
-      text,
-    });
+  async sendWelcomeEmail(
+    email: string,
+    firstName: string,
+    locale?: string,
+  ): Promise<void> {
+    const t = getEmailI18n(locale);
+    const content = getWelcomeContent({ firstName }, t);
+    const { html, text } = wrapEmail(content.html, content.text, t.footer);
+    await this.sendEmail({ to: email, subject: t.welcome.subject, html, text });
   }
 
   async sendApplicationSubmittedEmail(
@@ -174,23 +184,26 @@ export class EmailService {
     startDate: Date,
     endDate?: Date,
     location?: string,
+    locale?: string,
   ): Promise<void> {
+    const t = getEmailI18n(locale);
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-    const content = getApplicationSubmittedContent({
-      applicantName,
+    const content = getApplicationSubmittedContent(
+      {
+        applicantName,
+        tournamentTitle,
+        startDate,
+        endDate,
+        location,
+        myApplicationsUrl: `${frontendUrl}/my-applications`,
+      },
+      t,
+    );
+    const { html, text } = wrapEmail(content.html, content.text, t.footer);
+    const subject = interpolate(t.applicationSubmitted.subject, {
       tournamentTitle,
-      startDate,
-      endDate,
-      location,
-      myApplicationsUrl: `${frontendUrl}/my-applications`,
     });
-    const { html, text } = wrapEmail(content.html, content.text);
-    await this.sendEmail({
-      to: email,
-      subject: `Application Submitted – ${tournamentTitle}`,
-      html,
-      text,
-    });
+    await this.sendEmail({ to: email, subject, html, text });
   }
 
   async sendApplicationStatusEmail(
@@ -199,25 +212,27 @@ export class EmailService {
     tournamentTitle: string,
     status: 'approved' | 'rejected',
     rejectionReason?: string,
+    locale?: string,
   ): Promise<void> {
+    const t = getEmailI18n(locale);
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-    const content = getApplicationStatusContent({
-      applicantName,
-      tournamentTitle,
-      status,
-      rejectionReason,
-      myApplicationsUrl: `${frontendUrl}/my-applications`,
-    });
-    const { html, text } = wrapEmail(content.html, content.text);
-    const subject =
+    const content = getApplicationStatusContent(
+      {
+        applicantName,
+        tournamentTitle,
+        status,
+        rejectionReason,
+        myApplicationsUrl: `${frontendUrl}/my-applications`,
+      },
+      t,
+    );
+    const { html, text } = wrapEmail(content.html, content.text, t.footer);
+    const subject = interpolate(
       status === 'approved'
-        ? `Application Approved - ${tournamentTitle}`
-        : `Application Update - ${tournamentTitle}`;
-    await this.sendEmail({
-      to: email,
-      subject,
-      html,
-      text,
-    });
+        ? t.applicationStatus.subjectApproved
+        : t.applicationStatus.subjectRejected,
+      { tournamentTitle },
+    );
+    await this.sendEmail({ to: email, subject, html, text });
   }
 }

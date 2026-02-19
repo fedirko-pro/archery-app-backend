@@ -16,4 +16,8 @@ export class AdminCreateUserDto {
   @IsString()
   @IsOptional()
   comment?: string;
+
+  @IsString()
+  @IsOptional()
+  appLanguage?: string;
 }

@@ -147,6 +147,7 @@ export class TournamentApplicationService {
         tournament.startDate,
         tournament.endDate,
         tournament.address,
+        applicant.appLanguage,
       )
       .catch((err) =>
         console.error('Failed to send application submitted email:', err),
@@ -303,12 +304,15 @@ export class TournamentApplicationService {
       const applicantName = application.applicant.firstName || 'Archer';
       const tournamentTitle = application.tournament.title;
 
+      const applicantLocale = application.applicant.appLanguage;
       if (status === ApplicationStatus.APPROVED) {
         await this.emailService.sendApplicationStatusEmail(
           application.applicant.email,
           applicantName,
           tournamentTitle,
           'approved',
+          undefined,
+          applicantLocale,
         );
       } else if (status === ApplicationStatus.REJECTED) {
         await this.emailService.sendApplicationStatusEmail(
@@ -317,6 +321,7 @@ export class TournamentApplicationService {
           tournamentTitle,
           'rejected',
           rejectionReason,
+          applicantLocale,
         );
       }
     } catch (error) {

@@ -56,7 +56,11 @@ export class UserService {
 
     // Send welcome email — fire-and-forget, never block or fail the signup
     this.emailService
-      .sendWelcomeEmail(user.email, user.firstName ?? user.email.split('@')[0])
+      .sendWelcomeEmail(
+        user.email,
+        user.firstName ?? user.email.split('@')[0],
+        user.appLanguage,
+      )
       .catch((err) => {
         this.logger.error(
           `Failed to send welcome email to ${user.email}:`,
@@ -374,6 +378,7 @@ export class UserService {
           adminName,
           oldRole,
           newRole,
+          user.appLanguage,
         )
         .catch((err) => {
           this.logger.error(
@@ -445,6 +450,7 @@ export class UserService {
         recipientName,
         creatorName,
         setPasswordUrl,
+        data.appLanguage,
       )
       .catch((err) => {
         this.logger.error(

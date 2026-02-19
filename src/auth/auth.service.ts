@@ -77,6 +77,7 @@ export class AuthService {
         user.email,
         resetToken,
         resetUrl,
+        user.appLanguage,
       );
     } catch {
       await this.userService.clearResetPasswordToken(user.id);
@@ -179,6 +180,7 @@ export class AuthService {
         user.email,
         resetToken,
         resetUrl,
+        user.appLanguage,
       );
     } catch {
       await this.userService.clearResetPasswordToken(user.id);

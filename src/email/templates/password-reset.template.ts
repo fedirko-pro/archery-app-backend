@@ -1,3 +1,4 @@
+import type { EmailI18n } from '../i18n';
 import {
   styleHeading,
   styleButton,
@@ -9,38 +10,42 @@ export interface PasswordResetContentParams {
   resetUrl: string;
 }
 
-export function getPasswordResetContent(params: PasswordResetContentParams): {
-  html: string;
-  text: string;
-} {
+export function getPasswordResetContent(
+  params: PasswordResetContentParams,
+  t: EmailI18n,
+): { html: string; text: string } {
   const { resetUrl } = params;
+  const s = t.passwordReset;
+
   const html = `
-    <h2 style="${styleHeading()}">Password Reset Request</h2>
-    <p>Hello,</p>
-    <p>You have requested to reset your password. Please click the button below to proceed:</p>
+    <h2 style="${styleHeading()}">${s.heading}</h2>
+    <p>${s.hello}</p>
+    <p>${s.body}</p>
     <div style="${styleBlockCenter()}">
       <a href="${resetUrl}"
          style="${styleButton()}">
-        Reset Password
+        ${s.ctaLabel}
       </a>
     </div>
-    <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+    <p>${s.linkFallback}</p>
     <p style="${styleLinkMuted()}">${resetUrl}</p>
-    <p>This link will expire in 1 hour for security reasons.</p>
-    <p>If you didn't request this password reset, please ignore this email.</p>
+    <p>${s.expiry}</p>
+    <p>${s.ignoreNote}</p>
   `;
+
   const text = `
-Password Reset Request
+${s.heading}
 
-Hello,
+${s.hello}
 
-You have requested to reset your password. Please visit the following link to proceed:
+${s.body}
 
 ${resetUrl}
 
-This link will expire in 1 hour for security reasons.
+${s.expiry}
 
-If you didn't request this password reset, please ignore this email.
+${s.ignoreNote}
 `.trim();
+
   return { html, text };
 }

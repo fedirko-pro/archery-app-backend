@@ -1,3 +1,5 @@
+import type { EmailI18n } from '../i18n';
+import { interpolate } from '../i18n';
 import {
   theme,
   styleHeading,
@@ -20,6 +22,7 @@ export interface ApplicationStatusContentParams {
 
 export function getApplicationStatusContent(
   params: ApplicationStatusContentParams,
+  t: EmailI18n,
 ): { html: string; text: string } {
   const {
     applicantName,
@@ -28,73 +31,76 @@ export function getApplicationStatusContent(
     rejectionReason,
     myApplicationsUrl,
   } = params;
+  const s = t.applicationStatus;
 
   const headingColor =
     status === 'approved'
       ? theme.colors.successHeading
       : theme.colors.dangerHeading;
 
+  const greeting = interpolate(s.greeting, { name: applicantName });
+  const approvedMessage = interpolate(s.approvedMessage, { tournamentTitle });
+  const rejectedMessage = interpolate(s.rejectedMessage, { tournamentTitle });
+
   const approvedBlockHtml = `
     <div style="${styleSuccessBox()}">
       <p style="${styleSuccessBoxText()}">
-        <strong>Great news!</strong> Your application for <strong>${tournamentTitle}</strong> has been approved.
+        <strong>${approvedMessage}</strong>
       </p>
     </div>
-    <p>You are now registered for this tournament. Please check your application details and prepare for the competition.</p>
-    <p>We look forward to seeing you there!</p>
+    <p>${s.approvedDetail}</p>
+    <p>${s.approvedLookForward}</p>
   `;
 
   const rejectedBlockHtml = `
     <div style="${styleDangerBox()}">
-      <p style="${styleDangerBoxText()}">
-        Your application for <strong>${tournamentTitle}</strong> has been reviewed.
-      </p>
+      <p style="${styleDangerBoxText()}">${rejectedMessage}</p>
     </div>
     ${
       rejectionReason
         ? `
-    <p><strong>Feedback:</strong></p>
+    <p><strong>${s.feedbackLabel}</strong></p>
     <div style="${styleNeutralBox()}">
       ${rejectionReason}
     </div>
     `
         : ''
     }
-    <p>If you have any questions or concerns, please don't hesitate to contact us.</p>
+    <p>${s.questionsNote}</p>
   `;
 
   const html = `
     <h2 style="${styleHeading(headingColor)}">
-      Tournament Application ${status === 'approved' ? 'Approved ✓' : 'Update'}
+      ${status === 'approved' ? s.headingApproved : s.headingUpdate}
     </h2>
-    <p>Hello ${applicantName},</p>
+    <p>${greeting}</p>
     ${status === 'approved' ? approvedBlockHtml : rejectedBlockHtml}
     <div style="${styleBlockCenter()}">
       <a href="${myApplicationsUrl}"
          style="${styleButton()}">
-        View My Applications
+        ${s.ctaLabel}
       </a>
     </div>
   `;
 
-  const approvedBlockText = `Great news! Your application for ${tournamentTitle} has been approved.
+  const approvedBlockText = `${approvedMessage}
 
-You are now registered for this tournament. Please check your application details and prepare for the competition.
+${s.approvedDetail}
 
-We look forward to seeing you there!`;
+${s.approvedLookForward}`;
 
-  const rejectedBlockText = `Your application for ${tournamentTitle} has been reviewed.
-${rejectionReason ? `Feedback: ${rejectionReason}\n` : ''}
-If you have any questions or concerns, please don't hesitate to contact us.`;
+  const rejectedBlockText = `${rejectedMessage}
+${rejectionReason ? `${s.feedbackLabel} ${rejectionReason}\n` : ''}
+${s.questionsNote}`;
 
   const text = `
-Tournament Application ${status === 'approved' ? 'Approved' : 'Update'}
+${status === 'approved' ? s.headingApproved : s.headingUpdate}
 
-Hello ${applicantName},
+${greeting}
 
 ${status === 'approved' ? approvedBlockText : rejectedBlockText}
 
-View your applications: ${myApplicationsUrl}
+${s.ctaLabel}: ${myApplicationsUrl}
 `.trim();
 
   return { html, text };

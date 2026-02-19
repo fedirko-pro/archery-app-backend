@@ -1,0 +1,3 @@
+export ESLINT_USE_FLAT_CONFIG=false
+echo "🔨 Running build check before push..."
+npm run build

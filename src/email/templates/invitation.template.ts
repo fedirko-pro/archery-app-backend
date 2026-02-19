@@ -1,50 +1,60 @@
 import {
+  theme,
   styleHeading,
   styleButton,
   styleBlockCenter,
   styleLinkMuted,
+  styleNeutralBox,
 } from './theme';
 
 export interface InvitationContentParams {
+  recipientName: string;
+  adminName: string;
   setPasswordUrl: string;
-  recipientName?: string;
 }
 
-/**
- * Content for admin-invited user: set password link.
- * Wire in user service when implementing invite flow.
- */
 export function getInvitationContent(params: InvitationContentParams): {
   html: string;
   text: string;
 } {
-  const { setPasswordUrl, recipientName = 'there' } = params;
-  const greeting =
-    recipientName === 'there' ? 'Hello,' : `Hello ${recipientName},`;
+  const { recipientName, adminName, setPasswordUrl } = params;
+
   const html = `
     <h2 style="${styleHeading()}">You're Invited to Archery App</h2>
-    <p>${greeting}</p>
-    <p>An administrator has created an account for you. Click the button below to set your password and get started:</p>
+    <p>Hello ${recipientName},</p>
+    <p>
+      <strong>${adminName}</strong> has created an account for you on <strong>Archery App</strong>.
+      Click the button below to set your password and get started:
+    </p>
     <div style="${styleBlockCenter()}">
       <a href="${setPasswordUrl}"
          style="${styleButton()}">
-        Set Password
+        Set Your Password
       </a>
     </div>
     <p>If the button doesn't work, copy and paste this link into your browser:</p>
     <p style="${styleLinkMuted()}">${setPasswordUrl}</p>
-    <p>This link will expire in 1 hour for security reasons.</p>
+    <div style="${styleNeutralBox()}">
+      <p style="margin: 0; color: ${theme.colors.text};">
+        This link will expire in <strong>24 hours</strong>.
+        If you were not expecting this invitation, you can safely ignore this email.
+      </p>
+    </div>
   `;
+
   const text = `
 You're Invited to Archery App
 
-${greeting}
+Hello ${recipientName},
 
-An administrator has created an account for you. Visit the link below to set your password and get started:
+${adminName} has created an account for you on Archery App.
+Visit the link below to set your password and get started:
 
 ${setPasswordUrl}
 
-This link will expire in 1 hour for security reasons.
+This link will expire in 24 hours.
+If you were not expecting this invitation, you can safely ignore this email.
 `.trim();
+
   return { html, text };
 }

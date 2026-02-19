@@ -7,6 +7,9 @@ import {
   getPasswordResetContent,
   getWelcomeContent,
   getApplicationStatusContent,
+  getApplicationSubmittedContent,
+  getInvitationContent,
+  getRoleChangedContent,
 } from './templates';
 
 export interface EmailOptions {
@@ -94,6 +97,50 @@ export class EmailService {
     }
   }
 
+  async sendInvitationEmail(
+    email: string,
+    recipientName: string,
+    adminName: string,
+    setPasswordUrl: string,
+  ): Promise<void> {
+    const content = getInvitationContent({
+      recipientName,
+      adminName,
+      setPasswordUrl,
+    });
+    const { html, text } = wrapEmail(content.html, content.text);
+    await this.sendEmail({
+      to: email,
+      subject: `You're invited to Archery App`,
+      html,
+      text,
+    });
+  }
+
+  async sendRoleChangedEmail(
+    email: string,
+    recipientName: string,
+    adminName: string,
+    oldRole: string,
+    newRole: string,
+  ): Promise<void> {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    const content = getRoleChangedContent({
+      recipientName,
+      adminName,
+      oldRole,
+      newRole,
+      profileUrl: `${frontendUrl}/profile`,
+    });
+    const { html, text } = wrapEmail(content.html, content.text);
+    await this.sendEmail({
+      to: email,
+      subject: `Your role has been updated – Archery App`,
+      html,
+      text,
+    });
+  }
+
   async sendPasswordResetEmail(
     email: string,
     _resetToken: string,
@@ -115,6 +162,32 @@ export class EmailService {
     await this.sendEmail({
       to: email,
       subject: 'Welcome to Archery App!',
+      html,
+      text,
+    });
+  }
+
+  async sendApplicationSubmittedEmail(
+    email: string,
+    applicantName: string,
+    tournamentTitle: string,
+    startDate: Date,
+    endDate?: Date,
+    location?: string,
+  ): Promise<void> {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    const content = getApplicationSubmittedContent({
+      applicantName,
+      tournamentTitle,
+      startDate,
+      endDate,
+      location,
+      myApplicationsUrl: `${frontendUrl}/my-applications`,
+    });
+    const { html, text } = wrapEmail(content.html, content.text);
+    await this.sendEmail({
+      to: email,
+      subject: `Application Submitted – ${tournamentTitle}`,
       html,
       text,
     });

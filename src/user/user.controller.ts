@@ -158,7 +158,7 @@ export class UserController {
   /**
    * Create a new user by an administrator.
    * POST /users/admin/create
-   * TODO: Send invitation email to the user with a link to set their password.
+   * Sends an invitation email with a set-password link (valid 24h).
    */
   @Post('admin/create')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -245,6 +245,9 @@ export class UserController {
     ) {
       delete dto.role;
     }
-    return this.userService.adminUpdateUser(id, dto);
+    const adminName =
+      `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() ||
+      req.user.email;
+    return this.userService.adminUpdateUser(id, dto, adminName);
   }
 }

@@ -40,9 +40,9 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       user = await this.userService.create({
         authProvider: AuthProviders.Google,
         role: Roles.User,
-        email: email,
-        firstName: name?.givenName,
-        lastName: name?.familyName,
+        email,
+        firstName: name?.givenName || email.split('@')[0],
+        lastName: name?.familyName || '',
         picture: photos?.[0]?.value,
       });
     }

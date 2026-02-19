@@ -18,12 +18,12 @@ export class CreateUserDto {
   password?: string;
 
   @IsString()
-  @IsOptional()
-  firstName?: string;
+  @IsNotEmpty({ message: 'First name is required' })
+  firstName: string;
 
   @IsString()
-  @IsOptional()
-  lastName?: string;
+  @IsNotEmpty({ message: 'Last name is required' })
+  lastName: string;
 
   // Only validate URL format if picture is provided and not empty
   @ValidateIf(

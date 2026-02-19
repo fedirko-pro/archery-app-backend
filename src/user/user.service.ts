@@ -4,8 +4,10 @@ import {
   BadRequestException,
   NotFoundException,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
+import { ConfigService } from '@nestjs/config';
 import { User } from './entity/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { AdminCreateUserDto } from './dto/admin-create-user.dto';
@@ -13,14 +15,20 @@ import { UpdateUserDto, AdminUpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Roles } from './types';
 import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'node:crypto';
 import { UploadService } from '../upload/upload.service';
 import { Club } from '../club/club.entity';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     private readonly entityManager: EntityManager,
     private readonly uploadService: UploadService,
+    private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
   ) {}
 
   async create(userData: CreateUserDto): Promise<User> {
@@ -45,6 +53,17 @@ export class UserService {
     });
 
     await this.entityManager.persistAndFlush(user);
+
+    // Send welcome email — fire-and-forget, never block or fail the signup
+    this.emailService
+      .sendWelcomeEmail(user.email, user.firstName ?? user.email.split('@')[0])
+      .catch((err) => {
+        this.logger.error(
+          `Failed to send welcome email to ${user.email}:`,
+          err.message,
+        );
+      });
+
     return user;
   }
 
@@ -297,11 +316,15 @@ export class UserService {
   async adminUpdateUser(
     id: string,
     updateData: AdminUpdateUserDto,
+    adminName?: string,
   ): Promise<User> {
     const user = await this.findById(id);
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
+    // Capture old role before update to detect change
+    const oldRole = user.role;
 
     // Check email uniqueness if email is being updated
     if (updateData.email && updateData.email !== user.email) {
@@ -338,6 +361,28 @@ export class UserService {
     user.updatedAt = new Date();
 
     await this.entityManager.persistAndFlush(user);
+
+    // Send role-change notification if role was updated
+    const newRole = user.role;
+    if (updateData.role && newRole !== oldRole && adminName) {
+      const recipientName =
+        [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email;
+      this.emailService
+        .sendRoleChangedEmail(
+          user.email,
+          recipientName,
+          adminName,
+          oldRole,
+          newRole,
+        )
+        .catch((err) => {
+          this.logger.error(
+            `Failed to send role-change email to ${user.email}:`,
+            err.message,
+          );
+        });
+    }
+
     return user;
   }
 
@@ -354,9 +399,8 @@ export class UserService {
   }
 
   /**
-   * Create a new user by an administrator.
-   * The user is created without a password and must set one via password reset.
-   * TODO: Send invitation email to the user with a link to set their password.
+   * Create a new user by an administrator and send an invitation email
+   * with a set-password link (valid for 24 hours).
    */
   async adminCreateUser(
     data: AdminCreateUserDto,
@@ -371,6 +415,10 @@ export class UserService {
       ? `User created by administrator ${creatorName}. Comment: ${data.comment}`
       : `User created by administrator ${creatorName}`;
 
+    // Generate set-password token valid for 24 hours
+    const inviteToken = randomBytes(32).toString('hex');
+    const inviteExpires = new Date(Date.now() + 24 * 3600 * 1000);
+
     const user = this.entityManager.create(User, {
       email: data.email,
       firstName: data.firstName,
@@ -378,10 +426,33 @@ export class UserService {
       bio: bioText,
       role: Roles.User,
       authProvider: 'local',
+      resetPasswordToken: inviteToken,
+      resetPasswordExpires: inviteExpires,
       createdAt: new Date(),
     });
 
     await this.entityManager.persistAndFlush(user);
+
+    // Send invitation email — fire-and-forget
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    const setPasswordUrl = `${frontendUrl}/reset-password?token=${inviteToken}`;
+    const fullName = [data.firstName, data.lastName].filter(Boolean).join(' ');
+    const recipientName = fullName || data.email;
+
+    this.emailService
+      .sendInvitationEmail(
+        user.email,
+        recipientName,
+        creatorName,
+        setPasswordUrl,
+      )
+      .catch((err) => {
+        this.logger.error(
+          `Failed to send invitation email to ${user.email}:`,
+          err.message,
+        );
+      });
+
     return user;
   }
 }

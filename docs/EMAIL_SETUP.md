@@ -9,28 +9,35 @@ Add the following variables to your `.env` file:
 
 ```env
 # Email Configuration (SMTP)
-SMTP_HOST=smtp.gmail.com
+SMTP_HOST=smtp.zoho.eu
 SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-SMTP_FROM_EMAIL=your-email@gmail.com
+SMTP_USER=your-email@zoho.com
+SMTP_PASSWORD=your-password
+SMTP_FROM_EMAIL=your-email@zoho.com
 SMTP_FROM_NAME=Archery App
 ```
 
-**Required:** `FRONTEND_URL` must be set for password reset and invitation links, and for "View My Applications" links in tournament emails.
+**Required:** `FRONTEND_URL` must also be set — used for password reset links and "View My Applications" links in tournament emails.
 
 ## Email Structure (What We Send)
 
-| Email type | When sent | Method | Used by |
-|------------|-----------|--------|---------|
-| **Password reset** | User or admin requests reset | `sendPasswordResetEmail` | Auth (forgot-password, admin reset) |
-| **Tournament application status** | Application approved or rejected | `sendApplicationStatusEmail` | Tournament application service |
-| **Welcome** | After sign-up (optional) | `sendWelcomeEmail` | Not wired yet |
-| **Invitation** | Admin creates user (set password link) | _To implement_ | User service (invite flow) |
+| # | Email type | Trigger | `EmailService` method | Status |
+|---|------------|---------|----------------------|--------|
+| 1 | **Password reset** | User clicks "Forgot password" or admin resets a user | `sendPasswordResetEmail` | ✅ Active |
+| 2 | **Application submitted** | User submits a tournament application | `sendApplicationSubmittedEmail` | ✅ Active |
+| 3 | **Application status** | Application approved or rejected by admin | `sendApplicationStatusEmail` | ✅ Active |
+| 4 | **Welcome** | New user registered (email/password or Google OAuth) | `sendWelcomeEmail` | ✅ Active |
+| 5 | **Role changed** | Admin changes a user's role | `sendRoleChangedEmail` | ✅ Active |
+| 6 | **Invitation** | Admin creates a user via admin panel | `sendInvitationEmail` | ✅ Active |
+
+**Notes:**
+- **Welcome email** requires `firstName` — enforced by `CreateUserDto` (`@IsNotEmpty`) for email signup; Google strategy always provides `name.givenName` with a fallback to the email username prefix.
+- **Invitation email** includes the inviting admin's name and a set-password link valid for **24 hours** (reuses the `resetPasswordToken` mechanism). The link leads to the existing `/reset-password` page.
+- **Welcome email is fire-and-forget** — a failed email send never blocks or fails the signup.
 
 All emails use:
-- **HTML + plain text** (fallback for clients that don’t support HTML)
-- **Consistent layout:** header, body, primary CTA (if any), footer with “automated / do not reply”
+- **HTML + plain text** (fallback for clients that don't render HTML)
+- **Consistent layout:** header → content → footer ("automated / do not reply")
 - **From:** `SMTP_FROM_NAME` and `SMTP_FROM_EMAIL` (set in env)
 
 ### Template folder structure
@@ -39,48 +46,58 @@ Templates live under `src/email/templates/`:
 
 ```
 src/email/templates/
-├── index.ts                    # Re-exports theme, layout + all content templates
-├── theme.ts                    # Design tokens (colors, sizes) + style helpers → inline strings
-├── layout.ts                   # wrapEmail(contentHtml, contentText) → full email
+├── index.ts                        # Re-exports theme, layout + all content templates
+├── theme.ts                        # Design tokens (colors, sizes) + style helpers → inline strings
+├── layout.ts                       # wrapEmail(contentHtml, contentText) → full email
 ├── partials/
-│   ├── header.ts               # Shared header (HTML + text)
-│   └── footer.ts               # Shared footer (HTML + text)
-├── password-reset.template.ts  # Content only: getPasswordResetContent({ resetUrl })
-├── welcome.template.ts         # Content only: getWelcomeContent({ firstName })
-├── application-status.template.ts  # Content: getApplicationStatusContent({ ... })
-└── invitation.template.ts      # Content only: getInvitationContent({ setPasswordUrl, recipientName? })
+│   ├── header.ts                   # Shared header (HTML + text)
+│   └── footer.ts                   # Shared footer (HTML + text)
+├── password-reset.template.ts          # getPasswordResetContent({ resetUrl })
+├── welcome.template.ts                 # getWelcomeContent({ firstName })
+├── application-submitted.template.ts   # getApplicationSubmittedContent({ applicantName, tournamentTitle, startDate, endDate?, location?, myApplicationsUrl })
+├── application-status.template.ts      # getApplicationStatusContent({ applicantName, tournamentTitle, status, rejectionReason?, myApplicationsUrl })
+├── role-changed.template.ts            # getRoleChangedContent({ recipientName, adminName, oldRole, newRole, profileUrl })
+└── invitation.template.ts              # getInvitationContent({ recipientName, adminName, setPasswordUrl })
 ```
 
-- **Theme:** `theme.ts` holds design tokens (`theme.colors`, `theme.sizes`) and helpers (`styleHeading()`, `styleButton()`, etc.) that return inline style strings. Templates use these so all emails share one place for colors, spacing, and typography; the composed HTML still has inline styles for email-client compatibility.
-- **Common parts:** `partials/header.ts` and `partials/footer.ts` define the shared top and bottom. `layout.ts` exports `wrapEmail(contentHtml, contentText)`, which wraps any content with header + footer.
-- **Content templates:** Each email type has its own file that exports a `get*Content(params)` function returning `{ html, text }` for the middle part only. The service calls `wrapEmail(content.html, content.text)` to build the full email.
-- To add a new email type: add a new `*.template.ts` with a `get*Content()` and wire it in `EmailService` (and optionally in `templates/index.ts`).
+- **Theme:** `theme.ts` holds design tokens (`theme.colors`, `theme.sizes`) and helpers (`styleHeading()`, `styleButton()`, etc.) that return inline style strings. All templates use these — change a token once and every email updates. The final HTML always has styles inline for email-client compatibility.
+- **Common parts:** `partials/header.ts` and `partials/footer.ts` are the shared top and bottom. `layout.ts` exports `wrapEmail(contentHtml, contentText)`, which assembles the full email.
+- **Content templates:** Each email type has its own file exporting a `get*Content(params)` function that returns `{ html, text }` for the middle section only. `EmailService` calls `wrapEmail(content.html, content.text)` to build the complete email.
+
+**Adding a new email type:**
+1. Create `src/email/templates/your-type.template.ts` with `getYourTypeContent(params): { html, text }`
+2. Use theme helpers for styling (e.g. `styleButton()`, `styleHeading()`)
+3. Export it from `templates/index.ts`
+4. Add `sendYourTypeEmail()` to `EmailService` following the same 3-line pattern:
+   ```ts
+   const content = getYourTypeContent(params);
+   const { html, text } = wrapEmail(content.html, content.text);
+   await this.sendEmail({ to, subject, html, text });
+   ```
 
 ## Email Provider Setup
 
-### Zoho Mail (recommended for production / demo)
-Use your Zoho Mail address and password (or an [application-specific password](https://www.zoho.com/mail/help/adminconsole/two-factor-authentication.html) if 2FA is on).
+### Zoho Mail (current — recommended for production / demo)
 
+- **Custom domain (paid org):** `smtppro.zoho.com`
 - **Personal / free org:** `smtp.zoho.com`
-- **Paid org (custom domain):** `smtppro.zoho.com`
+- **EU data centre:** `smtp.zoho.eu`
 
 ```env
-SMTP_HOST=smtp.zoho.com
+SMTP_HOST=smtp.zoho.eu
 SMTP_PORT=465
-SMTP_USER=your-email@zoho.com
+SMTP_USER=your-email@your-domain.com
 SMTP_PASSWORD=your-zoho-password-or-app-password
-SMTP_FROM_EMAIL=your-email@zoho.com
+SMTP_FROM_EMAIL=your-email@your-domain.com
 SMTP_FROM_NAME=Archery App
 ```
 
-- Port **465** = SSL (recommended). Port **587** = STARTTLS; both work with the current code.
+- Port **465** = SSL. Port **587** = STARTTLS (recommended if 465 is blocked by your network). Both work with the current code.
+- If 2FA is enabled on the account, use a [Zoho application-specific password](https://www.zoho.com/mail/help/adminconsole/two-factor-authentication.html).
 
 ### Gmail
 1. Enable 2-factor authentication on your Google account
-2. Generate an App Password:
-   - Go to Google Account settings
-   - Security → 2-Step Verification → App passwords
-   - Generate a new app password for "Mail"
+2. Generate an App Password: Google Account → Security → 2-Step Verification → App passwords
 3. Use the generated password as `SMTP_PASSWORD`
 
 ```env
@@ -114,30 +131,35 @@ SMTP_FROM_NAME=Archery App
 
 ## Testing the Email Service
 
-### Test Endpoint
-Send a POST request to `/email/test`:
+### Check loaded SMTP config
+```bash
+curl http://localhost:3000/email/config
+```
 
+### Send a test email
 ```bash
 curl -X POST http://localhost:3000/email/test \
   -H "Content-Type: application/json" \
   -d '{
-    "to": "test@example.com",
+    "to": "you@example.com",
     "subject": "Test Email",
     "message": "This is a test message"
   }'
 ```
 
-### Available Email Methods
+## Available `EmailService` Methods
 
-1. **sendEmail(options)** – Send a custom email (`to`, `subject`, `html`, optional `text`)
-2. **sendPasswordResetEmail(email, resetToken, resetUrl)** – Password reset with link (1h expiry)
-3. **sendWelcomeEmail(email, firstName)** – Welcome after sign-up (not called yet; wire in registration if desired)
-4. **sendApplicationStatusEmail(email, applicantName, tournamentTitle, status, rejectionReason?)** – Tournament application approved/rejected  
-5. **Invitation** – Template exists (`invitation.template.ts`); add `sendInvitationEmail` and wire in user invite flow when ready
+| Method | Params | Notes |
+|--------|--------|-------|
+| `sendEmail(options)` | `{ to, subject, html, text? }` | Generic low-level send |
+| `sendPasswordResetEmail(email, _token, resetUrl)` | — | Token stored in DB; link expires in 1h |
+| `sendWelcomeEmail(email, firstName)` | — | Sent on every new registration |
+| `sendApplicationSubmittedEmail(email, applicantName, tournamentTitle, startDate, endDate?, location?)` | — | Sent when user submits a tournament application |
+| `sendApplicationStatusEmail(email, applicantName, tournamentTitle, status, rejectionReason?)` | `status: 'approved' \| 'rejected'` | Sent when admin updates application status |
+| `sendRoleChangedEmail(email, recipientName, adminName, oldRole, newRole)` | — | Sent when admin changes a user's role; includes permission list |
+| `sendInvitationEmail(email, recipientName, adminName, setPasswordUrl)` | — | Sent when admin creates a user; link valid 24h |
 
 ## Usage in Other Services
-
-Import and inject the EmailService in your modules:
 
 ```typescript
 import { EmailService } from '../email/email.service';
@@ -147,7 +169,9 @@ export class YourService {
   constructor(private readonly emailService: EmailService) {}
 
   async someMethod() {
-    await this.emailService.sendWelcomeEmail('user@example.com', 'John');
+    const content = getYourTypeContent(params);
+    const { html, text } = wrapEmail(content.html, content.text);
+    await this.emailService.sendEmail({ to, subject, html, text });
   }
 }
 ```

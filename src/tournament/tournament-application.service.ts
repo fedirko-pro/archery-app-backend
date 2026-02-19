@@ -137,6 +137,21 @@ export class TournamentApplicationService {
     });
 
     await this.em.persistAndFlush(application);
+
+    // Send submission confirmation — fire-and-forget
+    this.emailService
+      .sendApplicationSubmittedEmail(
+        applicant.email,
+        applicant.firstName || 'Archer',
+        tournament.title,
+        tournament.startDate,
+        tournament.endDate,
+        tournament.address,
+      )
+      .catch((err) =>
+        console.error('Failed to send application submitted email:', err),
+      );
+
     return application;
   }
 

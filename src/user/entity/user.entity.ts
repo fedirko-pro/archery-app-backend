@@ -56,6 +56,9 @@ export class User {
   @Property({ type: 'json', nullable: true })
   categories?: string[]; // User's preferred bow categories (e.g., ['RC', 'CP'])
 
+  @Property({ default: false, nullable: true })
+  syncTrainingsAndEquipment?: boolean = false;
+
   @ManyToOne(() => Club, { nullable: true })
   club?: Club;
 

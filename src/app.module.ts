@@ -14,6 +14,8 @@ import { ClubModule } from './club/club.module';
 import { RuleModule } from './rule/rule.module';
 import { DivisionModule } from './division/division.module';
 import { BowCategoryModule } from './bow-category/bow-category.module';
+import { EquipmentModule } from './equipment/equipment.module';
+import { TrainingModule } from './training/training.module';
 
 @Module({
   imports: [
@@ -40,6 +42,8 @@ import { BowCategoryModule } from './bow-category/bow-category.module';
     RuleModule,
     DivisionModule,
     BowCategoryModule,
+    EquipmentModule,
+    TrainingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

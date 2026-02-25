@@ -4,6 +4,7 @@ import {
   IsUrl,
   IsArray,
   IsEmail,
+  IsBoolean,
   ValidateIf,
 } from 'class-validator';
 
@@ -64,6 +65,10 @@ export class UpdateUserDto {
   @IsString()
   @IsOptional()
   gender?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  syncTrainingsAndEquipment?: boolean;
 }
 
 export class AdminUpdateUserDto extends UpdateUserDto {

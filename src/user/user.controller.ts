@@ -49,6 +49,7 @@ export class UserController {
       gender,
       categories,
       club,
+      syncTrainingsAndEquipment,
       createdAt,
       updatedAt,
     } = user as any;
@@ -69,6 +70,7 @@ export class UserController {
       categories: categories ?? [],
       clubId: club?.id ?? null,
       club: club ? { id: club.id, name: club.name } : null,
+      syncTrainingsAndEquipment: syncTrainingsAndEquipment ?? false,
       createdAt,
       updatedAt,
     };
@@ -94,6 +96,7 @@ export class UserController {
         gender,
         categories,
         club,
+        syncTrainingsAndEquipment,
         createdAt,
         updatedAt,
       } = user as any;
@@ -114,6 +117,7 @@ export class UserController {
         categories,
         clubId: club?.id || null,
         club: club ? { id: club.id, name: club.name } : null,
+        syncTrainingsAndEquipment: syncTrainingsAndEquipment ?? false,
         createdAt,
         updatedAt,
       };

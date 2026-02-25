@@ -29,6 +29,11 @@ export class TrainingController {
     return this.trainingService.findAllForUser(req.user.sub);
   }
 
+  @Get('stats')
+  getStats(@Request() req: any) {
+    return this.trainingService.getStats(req.user.sub);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @Request() req: any) {
     return this.trainingService.findOne(id, req.user.sub);

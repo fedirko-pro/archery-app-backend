@@ -50,7 +50,7 @@
     "class-validator": "^0.14.3",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
-    "multer": "^2.0.2",
+    "multer": "^2.1.0",
     "nodemailer": "^7.0.13",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",

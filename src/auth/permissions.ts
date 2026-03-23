@@ -10,10 +10,13 @@ import {
 export interface RequestUser {
   sub: string;
   role: string;
+  clubId?: string | null;
+  federationId?: string | null;
 }
 
 export interface TournamentWithCreator {
   createdBy: { id: string };
+  federation?: { id: string } | null;
 }
 
 /**

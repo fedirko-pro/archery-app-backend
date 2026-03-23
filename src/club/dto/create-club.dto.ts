@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
 
 export class CreateClubDto {
   @IsString()
@@ -20,4 +20,8 @@ export class CreateClubDto {
   @IsString()
   @IsOptional()
   clubLogo?: string;
+
+  @IsUUID()
+  @IsOptional()
+  federationId?: string;
 }

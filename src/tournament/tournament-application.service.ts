@@ -189,6 +189,27 @@ export class TournamentApplicationService {
     );
   }
 
+  async findAllByTournamentFederation(
+    federationId: string,
+  ): Promise<TournamentApplication[]> {
+    return this.em.find(
+      TournamentApplication,
+      {
+        tournament: { federation: { id: federationId } },
+      },
+      {
+        populate: [
+          'tournament',
+          'tournament.createdBy',
+          'tournament.federation',
+          'applicant',
+          'division',
+          'bowCategory',
+        ],
+      },
+    );
+  }
+
   async findByTournament(
     tournamentId: string,
   ): Promise<TournamentApplication[]> {

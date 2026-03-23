@@ -20,8 +20,6 @@ export class UploadService {
 
   private readonly imageDimensions = {
     avatar: { width: 512, height: 512 },
-    banner: { width: 1200, height: 400 },
-    logo: { width: 1200, height: 1200 }, // Max 1200px, will resize proportionally
   };
 
   private readonly allowedImageTypes = [
@@ -111,20 +109,23 @@ export class UploadService {
       }
 
       // Resize to target dimensions
-      // For logos, use 'inside' to maintain aspect ratio and fit within max dimensions
-      // For avatars and banners, use 'cover' to fill the entire area
-      const resizeOptions =
-        type === 'logo'
-          ? {
-              fit: 'inside' as const,
-              withoutEnlargement: true, // Don't enlarge smaller images
-            }
-          : {
-              fit: 'cover' as const,
-              position: 'center' as const,
-            };
-
-      image = image.resize(dimensions.width, dimensions.height, resizeOptions);
+      if (type === 'logo' || type === 'banner') {
+        image = image.resize(1200, 1200, {
+          fit: 'inside',
+          withoutEnlargement: true,
+        });
+      } else {
+        // For avatars, use 'cover' to fill the entire area
+        const resizeOptions = {
+          fit: 'cover' as const,
+          position: 'center' as const,
+        };
+        image = image.resize(
+          dimensions.width,
+          dimensions.height,
+          resizeOptions,
+        );
+      }
 
       // Convert to WebP
       const processedBuffer = await image.webp({ quality }).toBuffer();

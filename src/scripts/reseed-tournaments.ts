@@ -141,6 +141,8 @@ async function reseedTournaments() {
         allowMultipleApplications: i % 3 !== 0,
         targetCount: 12 + (i % 3) * 6,
         banner: bannerImages[i],
+        isOpenToOtherFederations: false,
+        isOpenToOtherCountries: false,
         createdBy: admin,
         rule,
       });
@@ -174,6 +176,8 @@ async function reseedTournaments() {
         allowMultipleApplications: i % 3 !== 0,
         targetCount: 12 + (i % 3) * 6,
         banner: bannerImages[i],
+        isOpenToOtherFederations: false,
+        isOpenToOtherCountries: false,
         createdBy: admin,
         rule,
       });

@@ -1,5 +1,6 @@
-import { Entity, PrimaryKey, Property } from '@mikro-orm/core';
+import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
 import { v4 as uuid } from 'uuid';
+import { Federation } from '../federation/federation.entity';
 
 @Entity()
 export class Club {
@@ -21,6 +22,9 @@ export class Club {
 
   @Property({ nullable: true })
   clubLogo?: string;
+
+  @ManyToOne(() => Federation, { nullable: true })
+  federation?: Federation | null;
 
   @Property({ onCreate: () => new Date() })
   createdAt?: Date = new Date();

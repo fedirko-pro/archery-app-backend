@@ -11,6 +11,8 @@ import { Club } from '../club/club.entity';
 // 👇 Виправлено імпорт bcryptjs
 import * as bcrypt from 'bcryptjs';
 import { ClubSeeder } from './ClubSeeder';
+import { CountrySeeder } from './CountrySeeder';
+import { FederationSeeder } from './FederationSeeder';
 import { RuleSeeder } from './RuleSeeder';
 import { DivisionSeeder } from './DivisionSeeder';
 import { BowCategorySeeder } from './BowCategorySeeder';
@@ -29,6 +31,8 @@ export class DatabaseSeeder extends Seeder {
 
     // Seed clubs, rules, divisions, bow categories, and FABP-ROTA data
     await this.call(em, [
+      CountrySeeder,
+      FederationSeeder,
       ClubSeeder,
       RuleSeeder,
       DivisionSeeder,
@@ -422,6 +426,8 @@ export class DatabaseSeeder extends Seeder {
           allowMultipleApplications: i % 3 !== 0,
           targetCount: 12 + (i % 3) * 6,
           banner: bannerImages[i],
+          isOpenToOtherFederations: false,
+          isOpenToOtherCountries: false,
           createdBy: admin,
           rule,
         });

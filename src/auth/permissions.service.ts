@@ -22,16 +22,28 @@ export class PermissionsService {
     if (!this.hasPermission(user.role, 'permCreateEditTournament')) {
       return false;
     }
-    if (
-      user.role === Roles.GeneralAdmin ||
-      user.role === Roles.FederationAdmin
-    ) {
-      return true;
+
+    if (user.role === Roles.GeneralAdmin) return true;
+    if (user.role === Roles.FederationAdmin) {
+      return this.canFederationAdminUpdateTournament(user, tournament);
     }
     if (user.role === Roles.ClubAdmin && tournament.createdBy.id === user.sub) {
       return true;
     }
     return false;
+  }
+
+  private canFederationAdminUpdateTournament(
+    user: RequestUser,
+    tournament: TournamentWithCreator,
+  ): boolean {
+    const tournamentFederationId = tournament.federation?.id ?? null;
+    if (tournamentFederationId && user.federationId) {
+      return tournamentFederationId === user.federationId;
+    }
+    // Backward compatibility for legacy tournaments (no federation set):
+    // allow federation admin to manage only tournaments they created.
+    return tournament.createdBy.id === user.sub;
   }
 
   canDeleteTournament(user: RequestUser): boolean {
@@ -57,12 +69,19 @@ export class PermissionsService {
     if (!tournament) return false;
     if (!this.hasPermission(user.role, 'permViewApplications')) return false;
     if (user.role === Roles.GeneralAdmin) return true;
-    if (
-      (user.role === Roles.ClubAdmin || user.role === Roles.FederationAdmin) &&
-      tournament.createdBy.id === user.sub
-    ) {
-      return true;
+    if (user.role === Roles.FederationAdmin) {
+      const tournamentFederationId = (tournament as any).federation?.id ?? null;
+      if (tournamentFederationId && user.federationId) {
+        return tournamentFederationId === user.federationId;
+      }
     }
+    if (user.role === Roles.ClubAdmin && tournament.createdBy.id === user.sub)
+      return true;
+    if (
+      user.role === Roles.FederationAdmin &&
+      tournament.createdBy.id === user.sub
+    )
+      return true;
     return false;
   }
 

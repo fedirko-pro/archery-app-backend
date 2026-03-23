@@ -2,6 +2,7 @@ import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
 import { v4 as uuid } from 'uuid';
 import { User } from '../user/entity/user.entity';
 import { Rule } from '../rule/rule.entity';
+import { Federation } from '../federation/federation.entity';
 
 @Entity()
 export class Tournament {
@@ -47,6 +48,23 @@ export class Tournament {
     mimeType: string;
     uploadedAt: Date;
   }>;
+
+  /** ISO 3166-1 alpha-2 country code, e.g. "PT" */
+  @Property({ nullable: true, length: 2 })
+  countryCode?: string;
+
+  /**
+   * Federation scope: by default tournaments are limited to a federation.
+   * When open flags are enabled, other federations/countries may view/apply.
+   */
+  @ManyToOne(() => Federation, { nullable: true })
+  federation?: Federation;
+
+  @Property({ default: false })
+  isOpenToOtherFederations: boolean = false;
+
+  @Property({ default: false })
+  isOpenToOtherCountries: boolean = false;
 
   @ManyToOne(() => User)
   createdBy: User;

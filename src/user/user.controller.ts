@@ -69,7 +69,22 @@ export class UserController {
       gender,
       categories: categories ?? [],
       clubId: club?.id ?? null,
-      club: club ? { id: club.id, name: club.name } : null,
+      club: club
+        ? {
+            id: club.id,
+            name: club.name,
+            federation: club.federation
+              ? {
+                  id: club.federation.id,
+                  name: club.federation.name,
+                  shortCode: club.federation.shortCode,
+                  description: club.federation.description,
+                  logo: club.federation.logo,
+                  url: club.federation.url,
+                }
+              : null,
+          }
+        : null,
       syncTrainingsAndEquipment: syncTrainingsAndEquipment ?? false,
       createdAt,
       updatedAt,
@@ -116,7 +131,22 @@ export class UserController {
         gender,
         categories,
         clubId: club?.id || null,
-        club: club ? { id: club.id, name: club.name } : null,
+        club: club
+          ? {
+              id: club.id,
+              name: club.name,
+              federation: club.federation
+                ? {
+                    id: club.federation.id,
+                    name: club.federation.name,
+                    shortCode: club.federation.shortCode,
+                    description: club.federation.description,
+                    logo: club.federation.logo,
+                    url: club.federation.url,
+                  }
+                : null,
+            }
+          : null,
         syncTrainingsAndEquipment: syncTrainingsAndEquipment ?? false,
         createdAt,
         updatedAt,

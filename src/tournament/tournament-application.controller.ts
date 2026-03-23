@@ -87,12 +87,20 @@ export class TournamentApplicationController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRoles.GeneralAdmin, UserRoles.ClubAdmin, UserRoles.FederationAdmin)
   async findAll(@Request() req: any) {
-    const applications =
-      req.user.role === UserRoles.GeneralAdmin
-        ? await this.applicationService.findAll()
-        : await this.applicationService.findAllByTournamentCreator(
-            req.user.sub,
-          );
+    const applications = await (async () => {
+      if (req.user.role === UserRoles.GeneralAdmin) {
+        return this.applicationService.findAll();
+      }
+      if (
+        req.user.role === UserRoles.FederationAdmin &&
+        req.user.federationId
+      ) {
+        return this.applicationService.findAllByTournamentFederation(
+          req.user.federationId,
+        );
+      }
+      return this.applicationService.findAllByTournamentCreator(req.user.sub);
+    })();
     // Serialize to plain JSON to avoid class-transformer issues
     return applications.map((app) => {
       const json: any = wrap(app).toJSON();

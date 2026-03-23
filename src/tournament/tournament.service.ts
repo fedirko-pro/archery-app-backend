@@ -9,6 +9,11 @@ import { Rule } from '../rule/rule.entity';
 import { subDays, parseISO } from 'date-fns';
 import { UploadService } from '../upload/upload.service';
 
+export type TournamentListFilters = {
+  countryCode?: string;
+  federationId?: string;
+};
+
 @Injectable()
 export class TournamentService {
   constructor(
@@ -79,10 +84,59 @@ export class TournamentService {
       Tournament,
       {},
       {
-        populate: ['createdBy', 'rule'],
+        populate: ['createdBy', 'rule', 'federation'],
         orderBy: { startDate: 'ASC' }, // Sort by start date, nearest first
       },
     );
+  }
+
+  async findVisible(
+    filters: TournamentListFilters,
+    viewerFederationId?: string,
+  ): Promise<Tournament[]> {
+    const where: any = {};
+
+    if (filters.countryCode) {
+      where.countryCode = filters.countryCode;
+    }
+
+    // Build federation visibility conditions
+    const visibilityConditions =
+      this.buildVisibilityConditions(viewerFederationId);
+
+    // Apply federation filter
+    if (filters.federationId) {
+      where.$and = [
+        { $or: visibilityConditions },
+        {
+          $or: [
+            { federation: filters.federationId },
+            { isOpenToOtherFederations: true },
+            { federation: null },
+          ],
+        },
+      ];
+    } else {
+      where.$or = visibilityConditions;
+    }
+
+    return this.em.find(Tournament, where, {
+      populate: ['createdBy', 'rule', 'federation'],
+      orderBy: { startDate: 'ASC' },
+    });
+  }
+
+  private buildVisibilityConditions(viewerFederationId?: string): any[] {
+    const conditions: any[] = [
+      { isOpenToOtherFederations: true },
+      { federation: null },
+    ];
+
+    if (viewerFederationId) {
+      conditions.unshift({ federation: viewerFederationId });
+    }
+
+    return conditions;
   }
 
   async findById(id: string): Promise<Tournament> {
@@ -90,7 +144,7 @@ export class TournamentService {
       Tournament,
       { id },
       {
-        populate: ['createdBy', 'rule'],
+        populate: ['createdBy', 'rule', 'federation'],
       },
     );
 

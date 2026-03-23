@@ -13,7 +13,7 @@ export class ClubSeeder extends Seeder {
         description:
           'Premier archery club in Kyiv, offering training for all levels from beginners to competitive archers. We specialize in Olympic recurve and compound bow techniques.',
         location: 'Kyiv, Ukraine',
-        clubLogo: 'https://i.pravatar.cc/300?img=1',
+        clubLogo: '',
       },
       {
         name: 'Lviv Traditional Archers',
@@ -21,7 +21,7 @@ export class ClubSeeder extends Seeder {
         description:
           'Dedicated to preserving traditional archery methods and techniques. Join us for a unique experience in historical archery practices.',
         location: 'Lviv, Ukraine',
-        clubLogo: 'https://i.pravatar.cc/300?img=2',
+        clubLogo: '',
       },
       {
         name: 'Odessa Bow Hunters',
@@ -29,7 +29,7 @@ export class ClubSeeder extends Seeder {
         description:
           'Coastal archery club focusing on field archery and 3D target shooting. Perfect for outdoor enthusiasts and hunters.',
         location: 'Odessa, Ukraine',
-        clubLogo: 'https://i.pravatar.cc/300?img=3',
+        clubLogo: '',
       },
       {
         name: 'Dnipro Archery Academy',
@@ -37,7 +37,7 @@ export class ClubSeeder extends Seeder {
         description:
           'Professional training academy with certified coaches. We prepare athletes for national and international competitions.',
         location: 'Dnipro, Ukraine',
-        clubLogo: 'https://i.pravatar.cc/300?img=4',
+        clubLogo: '',
       },
       {
         name: 'Kharkiv Youth Archers',
@@ -45,7 +45,7 @@ export class ClubSeeder extends Seeder {
         description:
           'Youth-focused archery program promoting physical fitness, discipline, and sportsmanship among young athletes aged 8-18.',
         location: 'Kharkiv, Ukraine',
-        clubLogo: 'https://i.pravatar.cc/300?img=5',
+        clubLogo: '',
       },
       {
         name: 'Lisbon Archery Center',
@@ -53,7 +53,7 @@ export class ClubSeeder extends Seeder {
         description:
           'Modern archery facility in Lisbon with indoor and outdoor ranges. Home to national team training sessions.',
         location: 'Lisbon, Portugal',
-        clubLogo: 'https://i.pravatar.cc/300?img=6',
+        clubLogo: '',
       },
       {
         name: 'Porto Field Archers',
@@ -61,7 +61,7 @@ export class ClubSeeder extends Seeder {
         description:
           'Specialized in field archery and nature courses. Experience archery in the beautiful Portuguese countryside.',
         location: 'Porto, Portugal',
-        clubLogo: 'https://i.pravatar.cc/300?img=7',
+        clubLogo: '',
       },
       {
         name: 'Coimbra University Archery',
@@ -69,7 +69,7 @@ export class ClubSeeder extends Seeder {
         description:
           'University archery club open to students and community. Combining academic excellence with sporting achievement.',
         location: 'Coimbra, Portugal',
-        clubLogo: 'https://i.pravatar.cc/300?img=8',
+        clubLogo: '',
       },
       {
         name: 'Algarve Coastal Archers',
@@ -77,7 +77,7 @@ export class ClubSeeder extends Seeder {
         description:
           'Seaside archery club with stunning ocean views. Specializing in outdoor competitions and beach archery events.',
         location: 'Faro, Portugal',
-        clubLogo: 'https://i.pravatar.cc/300?img=9',
+        clubLogo: '',
       },
       {
         name: 'Braga Historic Bowmen',
@@ -85,7 +85,7 @@ export class ClubSeeder extends Seeder {
         description:
           'Traditional and medieval archery enthusiasts. Preserving the heritage of Portuguese archery traditions.',
         location: 'Braga, Portugal',
-        clubLogo: 'https://i.pravatar.cc/300?img=10',
+        clubLogo: '',
       },
     ];
 
@@ -97,6 +97,12 @@ export class ClubSeeder extends Seeder {
       if (!existing) {
         const club = em.create(Club, clubData);
         toPersist.push(club);
+      } else {
+        // Normalize seed data: avoid external avatar placeholders (CORS issues in UI).
+        if (existing.clubLogo?.includes('i.pravatar.cc')) {
+          existing.clubLogo = '';
+          toPersist.push(existing);
+        }
       }
     }
     await em.persistAndFlush(toPersist);

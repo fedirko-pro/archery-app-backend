@@ -4,6 +4,7 @@ import { Club } from './club.entity';
 import { CreateClubDto } from './dto/create-club.dto';
 import { UpdateClubDto } from './dto/update-club.dto';
 import { UploadService } from '../upload/upload.service';
+import { Federation } from '../federation/federation.entity';
 
 @Injectable()
 export class ClubService {
@@ -14,7 +15,20 @@ export class ClubService {
 
   async create(createClubDto: CreateClubDto): Promise<Club> {
     const club = new Club();
-    Object.assign(club, createClubDto);
+    const { federationId, ...data } = createClubDto as any;
+    Object.assign(club, data);
+
+    if (federationId) {
+      const federation = await this.em.findOne(Federation, {
+        id: federationId,
+      });
+      if (!federation) {
+        throw new NotFoundException(
+          `Federation with ID ${federationId} not found`,
+        );
+      }
+      club.federation = federation;
+    }
 
     await this.em.persistAndFlush(club);
     return club;
@@ -37,7 +51,25 @@ export class ClubService {
   async update(id: string, updateClubDto: UpdateClubDto): Promise<Club> {
     const club = await this.findOne(id);
 
-    Object.assign(club, updateClubDto);
+    const { federationId, ...data } = updateClubDto as any;
+    Object.assign(club, data);
+
+    if (federationId !== undefined) {
+      if (federationId) {
+        const federation = await this.em.findOne(Federation, {
+          id: federationId,
+        });
+        if (!federation) {
+          throw new NotFoundException(
+            `Federation with ID ${federationId} not found`,
+          );
+        }
+        club.federation = federation;
+      } else {
+        club.federation = null;
+      }
+    }
+
     await this.em.flush();
 
     return club;

@@ -90,7 +90,11 @@ export class UserService {
   }
 
   async findById(id: string): Promise<User | null> {
-    return this.entityManager.findOne(User, { id }, { populate: ['club'] });
+    return this.entityManager.findOne(
+      User,
+      { id },
+      { populate: ['club', 'club.federation'] },
+    );
   }
 
   async update(

@@ -1,5 +1,6 @@
 import { EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
+import { Country } from '../country/country.entity';
 import { Federation } from '../federation/federation.entity';
 
 export class FederationSeeder extends Seeder {
@@ -31,7 +32,10 @@ export class FederationSeeder extends Seeder {
         toPersist.push(
           em.create(Federation, {
             ...federationData,
-            country: { code: countryCode },
+            country: em.getReference(
+              Country as any,
+              countryCode.toUpperCase() as any,
+            ) as any,
           }),
         );
         continue;
@@ -42,7 +46,10 @@ export class FederationSeeder extends Seeder {
       existing.description = updateData.description;
       existing.logo = updateData.logo;
       existing.url = updateData.url;
-      existing.country = { code: countryCode } as any;
+      existing.country = em.getReference(
+        Country as any,
+        countryCode.toUpperCase() as any,
+      ) as any;
       existing.updatedAt = new Date();
       toPersist.push(existing);
     }

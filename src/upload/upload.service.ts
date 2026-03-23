@@ -20,6 +20,8 @@ export class UploadService {
 
   private readonly imageDimensions = {
     avatar: { width: 512, height: 512 },
+    banner: { width: 1200, height: 1200 },
+    logo: { width: 1200, height: 1200 },
   };
 
   private readonly allowedImageTypes = [

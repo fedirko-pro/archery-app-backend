@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import { Federation } from './federation.entity';
+import { Country } from '../country/country.entity';
 import { CreateFederationDto } from './dto/create-federation.dto';
 import { UpdateFederationDto } from './dto/update-federation.dto';
 
@@ -25,7 +26,10 @@ export class FederationService {
     const { countryCode, ...federationData } = dto;
     const federation = this.em.create(Federation, {
       ...federationData,
-      country: { code: countryCode.toUpperCase() },
+      country: this.em.getReference(
+        Country as any,
+        countryCode.toUpperCase() as any,
+      ),
     });
 
     await this.em.persistAndFlush(federation);
@@ -65,7 +69,10 @@ export class FederationService {
     const { countryCode, ...updateData } = dto;
 
     if (countryCode) {
-      federation.country = { code: countryCode.toUpperCase() } as any;
+      federation.country = this.em.getReference(
+        Country as any,
+        countryCode.toUpperCase() as any,
+      ) as any;
     }
 
     Object.assign(federation, updateData);

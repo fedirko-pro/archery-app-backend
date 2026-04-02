@@ -45,6 +45,13 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         lastName: name?.familyName || '',
         picture: photos?.[0]?.value,
       });
+    } else if (user.authProvider === AuthProviders.Google) {
+      const googlePicture = photos?.[0]?.value;
+      if (googlePicture && user.picture !== googlePicture) {
+        user = await this.userService.update(user.id, {
+          picture: googlePicture,
+        });
+      }
     }
 
     const payload = { sub: user.id, email: user.email, role: user.role };

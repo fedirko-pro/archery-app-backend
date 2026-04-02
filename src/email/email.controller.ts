@@ -8,6 +8,12 @@ import {
 } from '@nestjs/common';
 import { EmailService } from './email.service';
 import { ConfigService } from '@nestjs/config';
+import {
+  styleContainer,
+  styleHeading,
+  styleHr,
+  styleFooter,
+} from './templates/theme';
 
 interface TestEmailDto {
   to: string;
@@ -45,14 +51,12 @@ export class EmailController {
     } = testEmailDto;
 
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">${subject}</h2>
+      <div style="${styleContainer()}">
+        <h2 style="${styleHeading()}">${subject}</h2>
         <p>${message}</p>
         <p>This is a test email sent from the Archery App email service.</p>
-        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-        <p style="color: #666; font-size: 12px;">
-          Test email - Archery App
-        </p>
+        <hr style="${styleHr()}">
+        <p style="${styleFooter()}">Test email - Archery App</p>
       </div>
     `;
 

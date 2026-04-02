@@ -6,6 +6,7 @@ import {
   PatrolEntry,
   ScoreCardConfig,
 } from './interfaces/patrol-generation.interface';
+import { PDF_COLORS } from './pdf-theme';
 
 /** Patrol list column config: key, header label, and width as % of effective page width */
 const PATROL_LIST_COLUMNS = [
@@ -131,8 +132,10 @@ export class PatrolPdfService {
     let x = startX;
     const y = doc.y;
 
-    doc.rect(startX, y, tableWidth, this.HEADER_HEIGHT).fill('#e0e0e0');
-    doc.fillColor('#000000').fontSize(9).font('Helvetica-Bold');
+    doc
+      .rect(startX, y, tableWidth, this.HEADER_HEIGHT)
+      .fill(PDF_COLORS.headerBg);
+    doc.fillColor(PDF_COLORS.textPrimary).fontSize(9).font('Helvetica-Bold');
 
     PATROL_LIST_COLUMNS.forEach((col) => {
       const w = colWidths[col.key];
@@ -179,7 +182,7 @@ export class PatrolPdfService {
     }
 
     doc
-      .strokeColor('#999999')
+      .strokeColor(PDF_COLORS.strokeLight)
       .moveTo(startX, doc.y)
       .lineTo(startX + tableWidth, doc.y)
       .stroke();
@@ -196,7 +199,9 @@ export class PatrolPdfService {
       const role = isLeader ? 'Leader' : isJudge ? 'Judge' : '';
 
       if (index % 2 === 0) {
-        doc.rect(startX, doc.y, tableWidth, this.ROW_HEIGHT).fill('#f9f9f9');
+        doc
+          .rect(startX, doc.y, tableWidth, this.ROW_HEIGHT)
+          .fill(PDF_COLORS.rowAltBg);
       }
 
       this.drawMemberRow(
@@ -233,7 +238,7 @@ export class PatrolPdfService {
     const iconGap = 8;
     const pad = 5;
 
-    doc.fillColor('#000000').fontSize(8).font('Helvetica');
+    doc.fillColor(PDF_COLORS.textPrimary).fontSize(8).font('Helvetica');
 
     // Patrol
     if (showPatrolNumber) {
@@ -281,7 +286,7 @@ export class PatrolPdfService {
       doc
         .fontSize(7)
         .font('Helvetica-Bold')
-        .fillColor('#000000')
+        .fillColor(PDF_COLORS.textPrimary)
         .text(role, x + pad + iconSize + iconGap, y + 5, {
           width: colWidths.role - pad - iconSize - iconGap - pad,
           align: 'right',
@@ -377,7 +382,7 @@ export class PatrolPdfService {
             doc.addPage();
           }
           // Cut lines: one horizontal and one vertical (A4 → A5)
-          doc.strokeColor('#333333').lineWidth(1);
+          doc.strokeColor(PDF_COLORS.strokeMedium).lineWidth(1);
           doc
             .moveTo(centerX, padding)
             .lineTo(centerX, pageH - padding)
@@ -456,9 +461,12 @@ export class PatrolPdfService {
     // 1) Patrol number in border (align baseline with name so badge does not shift)
     const patrolW = 32;
     const patrolFontSize = 14;
-    doc.strokeColor('#000000').lineWidth(headerBorderWidth);
+    doc.strokeColor(PDF_COLORS.strokeDark).lineWidth(headerBorderWidth);
     doc.roundedRect(x + pad, headerY, patrolW, tagH, tagRadius).stroke();
-    doc.fillColor('#000000').fontSize(patrolFontSize).font('Helvetica-Bold');
+    doc
+      .fillColor(PDF_COLORS.textPrimary)
+      .fontSize(patrolFontSize)
+      .font('Helvetica-Bold');
     const headerBaselineY = headerY + (tagH - nameFontSize) / 2 + 2;
     doc.text(`#${targetNumber}`, x + pad, headerBaselineY, {
       width: patrolW,
@@ -472,7 +480,7 @@ export class PatrolPdfService {
     const roleX = x + cardW - pad - roleW;
     let nameEndX = x + cardW - pad;
     if (isLeaderOrJudge && roleW > 0) {
-      doc.strokeColor('#000000').lineWidth(headerBorderWidth);
+      doc.strokeColor(PDF_COLORS.strokeDark).lineWidth(headerBorderWidth);
       doc.roundedRect(roleX, headerY, roleW, tagH, tagRadius).stroke();
       const iconSize = 11;
       const gap = 4;
@@ -489,7 +497,7 @@ export class PatrolPdfService {
         // ignore if icon missing
       }
       doc
-        .fillColor('#000000')
+        .fillColor(PDF_COLORS.textPrimary)
         .fontSize(10)
         .font('Helvetica-Bold')
         .text(role, textX, headerY + (tagH - 9) / 2, {
@@ -500,7 +508,10 @@ export class PatrolPdfService {
     }
 
     // 3) User's name (centered between patrol and role)
-    doc.font('Helvetica-Bold').fontSize(nameFontSize).fillColor('#000000');
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(nameFontSize)
+      .fillColor(PDF_COLORS.textPrimary);
     const nameWidth = nameEndX - afterPatrolX;
     doc.text(
       entry.name,
@@ -514,7 +525,7 @@ export class PatrolPdfService {
 
     // Subtitle: tournament name (centered, bold)
     const subY = headerY + tagH + 6;
-    doc.font('Helvetica-Bold').fontSize(10).fillColor('#333333');
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(PDF_COLORS.textBody);
     doc.text(tournamentName, x + pad, subY, {
       width: cardW - 2 * pad,
       align: 'center',
@@ -522,7 +533,7 @@ export class PatrolPdfService {
 
     // Location and date (centered)
     const locY = subY + 12;
-    doc.font('Helvetica').fontSize(10).fillColor('#555555');
+    doc.font('Helvetica').fontSize(10).fillColor(PDF_COLORS.textMuted);
     const locDate = [location, date].filter(Boolean).join(' • ');
     doc.text(locDate || '-', x + pad, locY, {
       width: cardW - 2 * pad,
@@ -543,21 +554,21 @@ export class PatrolPdfService {
       { label: 'Division', value: entry.division || '-' },
       { label: 'Category', value: entry.bowCategory || '-' },
     ];
-    doc.strokeColor('#999999').lineWidth(0.3);
+    doc.strokeColor(PDF_COLORS.strokeLight).lineWidth(0.3);
     doc.font('Helvetica').fontSize(infoFontSize);
     for (let i = 0; i < infoCols; i++) {
       const cx = x + pad + i * infoColW;
       doc.rect(cx, infoY, infoColW, infoCellH).stroke();
-      doc.rect(cx, infoY, infoColW, infoCellH / 2).fill('#e8e8e8');
+      doc.rect(cx, infoY, infoColW, infoCellH / 2).fill(PDF_COLORS.cellBg);
       doc.rect(cx, infoY, infoColW, infoCellH / 2).stroke();
       doc
-        .fillColor('#000000')
+        .fillColor(PDF_COLORS.textPrimary)
         .font('Helvetica-Bold')
         .text(infoCells[i].label, cx + infoPadH, infoY + infoPadV, {
           width: infoColW - 2 * infoPadH,
         });
       doc
-        .fillColor('#000000')
+        .fillColor(PDF_COLORS.textPrimary)
         .font('Helvetica')
         .text(
           infoCells[i].value,
@@ -593,10 +604,12 @@ export class PatrolPdfService {
           : 'Round';
 
     // Header row (light gray, centered text, padding)
-    doc.rect(gridStartX, headerRowY, endColW, headerRowH).fill('#e8e8e8');
+    doc
+      .rect(gridStartX, headerRowY, endColW, headerRowH)
+      .fill(PDF_COLORS.cellBg);
     doc
       .rect(gridStartX + endColW, headerRowY, arrows * arrowColW, headerRowH)
-      .fill('#e8e8e8');
+      .fill(PDF_COLORS.cellBg);
     doc
       .rect(
         gridStartX + endColW + arrows * arrowColW,
@@ -604,8 +617,8 @@ export class PatrolPdfService {
         totalColW,
         headerRowH,
       )
-      .fill('#e8e8e8');
-    doc.strokeColor('#999999').lineWidth(0.3);
+      .fill(PDF_COLORS.cellBg);
+    doc.strokeColor(PDF_COLORS.strokeLight).lineWidth(0.3);
     doc.rect(gridStartX, headerRowY, endColW, headerRowH).stroke();
     let gx = gridStartX + endColW;
     for (let a = 1; a <= arrows; a++) {
@@ -613,7 +626,7 @@ export class PatrolPdfService {
       gx += arrowColW;
     }
     doc.rect(gx, headerRowY, totalColW, headerRowH).stroke();
-    doc.fillColor('#000000').fontSize(10).font('Helvetica-Bold');
+    doc.fillColor(PDF_COLORS.textPrimary).fontSize(10).font('Helvetica-Bold');
     doc.text(
       firstColLabel,
       gridStartX + scoreCellPadH,
@@ -640,16 +653,16 @@ export class PatrolPdfService {
     doc.font('Helvetica');
     for (let e = 1; e <= ends; e++) {
       const rowY = gridTop + headerRowH + (e - 1) * rowH;
-      doc.rect(gridStartX, rowY, endColW, rowH).fill('#e8e8e8');
+      doc.rect(gridStartX, rowY, endColW, rowH).fill(PDF_COLORS.cellBg);
       doc.rect(gridStartX, rowY, endColW, rowH).stroke();
       doc
-        .fillColor('#000000')
+        .fillColor(PDF_COLORS.textPrimary)
         .fontSize(10)
         .text(String(e), gridStartX + scoreCellPadH, rowY + scoreCellPadV, {
           width: endColW - 2 * scoreCellPadH,
           align: 'center',
         });
-      doc.fillColor('#000000');
+      doc.fillColor(PDF_COLORS.textPrimary);
       gx = gridStartX + endColW;
       for (let a = 0; a < arrows; a++) {
         doc.rect(gx, rowY, arrowColW, rowH).stroke();
@@ -688,7 +701,7 @@ export class PatrolPdfService {
     const sigLabelGap = 6;
     const sigGap = 14;
     const halfCard = cardW / 2;
-    doc.font('Helvetica').fontSize(10).fillColor('#000000');
+    doc.font('Helvetica').fontSize(10).fillColor(PDF_COLORS.textPrimary);
     const judgeLabelW = 34;
     const leaderLabelW = 36;
     const leftLineStart = x + pad + judgeLabelW + sigLabelGap;
@@ -701,7 +714,7 @@ export class PatrolPdfService {
 
     doc.text('Judge:', x + pad, sigBlockTop, { width: judgeLabelW });
     doc
-      .strokeColor('#999999')
+      .strokeColor(PDF_COLORS.strokeLight)
       .lineWidth(0.4)
       .moveTo(leftLineStart, sigLineY)
       .lineTo(leftLineStart + leftLineW, sigLineY)
@@ -726,9 +739,12 @@ export class PatrolPdfService {
     pad: number,
     fontSize: number = 8,
   ): void {
-    doc.strokeColor('#333333').lineWidth(0.5);
+    doc.strokeColor(PDF_COLORS.strokeMedium).lineWidth(0.5);
     doc.roundedRect(x, y, w, h, r).stroke();
-    doc.fillColor('#000000').fontSize(fontSize).font('Helvetica-Bold');
+    doc
+      .fillColor(PDF_COLORS.textPrimary)
+      .fontSize(fontSize)
+      .font('Helvetica-Bold');
     doc.text(text, x + pad, y + (h - fontSize) / 2, { width: w - 2 * pad });
   }
 }

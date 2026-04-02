@@ -6,6 +6,7 @@ import {
   styleBlockCenter,
   styleSuccessBox,
   styleSuccessBoxText,
+  styleMuted,
 } from './theme';
 
 export interface ApplicationSubmittedContentParams {
@@ -50,21 +51,22 @@ export function getApplicationSubmittedContent(
   const greeting = interpolate(s.greeting, { name: applicantName });
   const successMessage = interpolate(s.successMessage, { tournamentTitle });
 
+  const labelStyle = `padding: 8px 0; ${styleMuted()}`;
   const detailsHtml = `
     <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
       <tr>
-        <td style="padding: 8px 0; color: #666; width: 100px;">${s.labelTournament}</td>
+        <td style="${labelStyle} width: 100px;">${s.labelTournament}</td>
         <td style="padding: 8px 0; font-weight: bold;">${tournamentTitle}</td>
       </tr>
       <tr>
-        <td style="padding: 8px 0; color: #666;">${s.labelDate}</td>
+        <td style="${labelStyle}">${s.labelDate}</td>
         <td style="padding: 8px 0;">${dateRange}</td>
       </tr>
       ${
         location
           ? `
       <tr>
-        <td style="padding: 8px 0; color: #666;">${s.labelLocation}</td>
+        <td style="${labelStyle}">${s.labelLocation}</td>
         <td style="padding: 8px 0;">${location}</td>
       </tr>`
           : ''

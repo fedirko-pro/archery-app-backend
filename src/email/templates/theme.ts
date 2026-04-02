@@ -4,10 +4,13 @@
  */
 export const theme = {
   colors: {
-    primary: '#007bff',
-    text: '#333',
-    textMuted: '#666',
-    border: '#eee',
+    // Brand — keep in sync with frontend src/theme/colors.ts
+    primary: '#000080', // navy (was Bootstrap #007bff)
+    primaryButton: '#000080', // CTA button background
+    accent: '#ffcc00', // yellow accent (secondary)
+    text: '#333333',
+    textMuted: '#666666',
+    border: '#e0e0e0',
     // Success (e.g. approved state)
     successBg: '#d4edda',
     successBorder: '#c3e6cb',
@@ -21,7 +24,7 @@ export const theme = {
     // Neutral (e.g. feedback block)
     neutralBg: '#f8f9fa',
     neutralBorder: '#6c757d',
-    white: '#fff',
+    white: '#ffffff',
   },
   sizes: {
     fontFamily: 'Arial, sans-serif',

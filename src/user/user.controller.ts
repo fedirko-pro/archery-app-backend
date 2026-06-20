@@ -21,6 +21,54 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { Roles as UserRoles } from './types';
 import { PermissionsService } from '../auth/permissions.service';
 
+function serializeUserProfile(user: Record<string, unknown>) {
+  const {
+    id,
+    email,
+    role,
+    firstName,
+    lastName,
+    picture,
+    bio,
+    location,
+    appLanguage,
+    federationNumber,
+    nationality,
+    gender,
+    categories,
+    club,
+    syncTrainingsAndEquipment,
+    shareProgressEnabled,
+    onboardingCompletedAt,
+    createdAt,
+    updatedAt,
+  } = user as any;
+
+  return {
+    id,
+    email,
+    role,
+    firstName,
+    lastName,
+    picture,
+    bio,
+    location,
+    language: appLanguage ?? undefined,
+    appLanguage: appLanguage ?? undefined,
+    federationNumber,
+    nationality,
+    gender,
+    categories: categories ?? [],
+    clubId: club?.id ?? null,
+    club: club ? { id: club.id, name: club.name } : null,
+    syncTrainingsAndEquipment: syncTrainingsAndEquipment ?? false,
+    shareProgressEnabled: shareProgressEnabled ?? false,
+    onboardingCompletedAt: onboardingCompletedAt ?? null,
+    createdAt,
+    updatedAt,
+  };
+}
+
 @Controller('users')
 export class UserController {
   constructor(
@@ -34,46 +82,7 @@ export class UserController {
     const dto = { ...createUserDto } as CreateUserDto & { role?: string };
     delete dto.role;
     const user = await this.userService.create(dto as CreateUserDto);
-    const {
-      id,
-      email,
-      role,
-      firstName,
-      lastName,
-      picture,
-      bio,
-      location,
-      appLanguage,
-      federationNumber,
-      nationality,
-      gender,
-      categories,
-      club,
-      syncTrainingsAndEquipment,
-      createdAt,
-      updatedAt,
-    } = user as any;
-    return {
-      id,
-      email,
-      role,
-      firstName,
-      lastName,
-      picture,
-      bio,
-      location,
-      language: appLanguage ?? undefined,
-      appLanguage: appLanguage ?? undefined,
-      federationNumber,
-      nationality,
-      gender,
-      categories: categories ?? [],
-      clubId: club?.id ?? null,
-      club: club ? { id: club.id, name: club.name } : null,
-      syncTrainingsAndEquipment: syncTrainingsAndEquipment ?? false,
-      createdAt,
-      updatedAt,
-    };
+    return serializeUserProfile(user as unknown as Record<string, unknown>);
   }
 
   @Get('profile')
@@ -81,54 +90,23 @@ export class UserController {
   getProfile(@Request() req: any) {
     return this.userService.findById(req.user.sub).then((user) => {
       if (!user) return null;
-      const {
-        id,
-        email,
-        role,
-        firstName,
-        lastName,
-        picture,
-        bio,
-        location,
-        appLanguage,
-        federationNumber,
-        nationality,
-        gender,
-        categories,
-        club,
-        syncTrainingsAndEquipment,
-        createdAt,
-        updatedAt,
-      } = user as any;
-      return {
-        id,
-        email,
-        role,
-        firstName,
-        lastName,
-        picture,
-        bio,
-        location,
-        language: appLanguage ?? undefined,
-        appLanguage: appLanguage ?? undefined,
-        federationNumber,
-        nationality,
-        gender,
-        categories,
-        clubId: club?.id || null,
-        club: club ? { id: club.id, name: club.name } : null,
-        syncTrainingsAndEquipment: syncTrainingsAndEquipment ?? false,
-        createdAt,
-        updatedAt,
-      };
+      return serializeUserProfile(user as unknown as Record<string, unknown>);
     });
   }
 
   @Patch('profile')
   @UseGuards(JwtAuthGuard)
-  updateProfile(@Request() req: any, @Body() updateUserDto: UpdateUserDto) {
+  async updateProfile(
+    @Request() req: any,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
     const isAdmin = this.permissionsService.canManageUsers(req.user);
-    return this.userService.update(req.user.sub, updateUserDto, isAdmin);
+    const user = await this.userService.update(
+      req.user.sub,
+      updateUserDto,
+      isAdmin,
+    );
+    return serializeUserProfile(user as unknown as Record<string, unknown>);
   }
 
   @Patch('change-password')

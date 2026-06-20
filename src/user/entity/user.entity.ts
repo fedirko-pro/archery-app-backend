@@ -59,6 +59,12 @@ export class User {
   @Property({ default: false, nullable: true })
   syncTrainingsAndEquipment?: boolean = false;
 
+  @Property({ default: false, nullable: true })
+  shareProgressEnabled?: boolean = false;
+
+  @Property({ nullable: true })
+  onboardingCompletedAt?: Date;
+
   @ManyToOne(() => Club, { nullable: true })
   club?: Club;
 

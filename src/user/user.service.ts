@@ -115,6 +115,15 @@ export class UserService {
       delete (safeUpdate as any).email;
     }
 
+    if (
+      'onboardingCompletedAt' in safeUpdate &&
+      typeof safeUpdate.onboardingCompletedAt === 'string'
+    ) {
+      safeUpdate.onboardingCompletedAt = new Date(
+        safeUpdate.onboardingCompletedAt as string,
+      );
+    }
+
     // Handle clubId separately
     if ('clubId' in safeUpdate) {
       const clubId = safeUpdate.clubId as string | undefined;

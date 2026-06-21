@@ -56,8 +56,8 @@ export class User {
   @Property({ type: 'json', nullable: true })
   categories?: string[]; // User's preferred bow categories (e.g., ['RC', 'CP'])
 
-  @Property({ default: false, nullable: true })
-  syncTrainingsAndEquipment?: boolean = false;
+  @Property({ default: true, nullable: true })
+  syncTrainingsAndEquipment?: boolean = true;
 
   @Property({ default: false, nullable: true })
   shareProgressEnabled?: boolean = false;

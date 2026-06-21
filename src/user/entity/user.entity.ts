@@ -2,6 +2,7 @@ import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
 import { v4 as uuid } from 'uuid';
 import { AuthProvider, AuthProviders } from '../types';
 import { Club } from '../../club/club.entity';
+import { Division } from '../../division/division.entity';
 
 @Entity()
 export class User {
@@ -67,6 +68,9 @@ export class User {
 
   @ManyToOne(() => Club, { nullable: true })
   club?: Club;
+
+  @ManyToOne(() => Division, { nullable: true })
+  division?: Division;
 
   // @OneToMany(() => Tournament, (tournament) => tournament.createdBy)
   // tournaments = [];

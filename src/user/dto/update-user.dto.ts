@@ -61,6 +61,10 @@ export class UpdateUserDto {
 
   @IsString()
   @IsOptional()
+  divisionId?: string;
+
+  @IsString()
+  @IsOptional()
   nationality?: string;
 
   @IsString()

@@ -18,6 +18,7 @@ import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
 import { UploadService } from '../upload/upload.service';
 import { Club } from '../club/club.entity';
+import { Division } from '../division/division.entity';
 import { EmailService } from '../email/email.service';
 
 @Injectable()
@@ -90,7 +91,11 @@ export class UserService {
   }
 
   async findById(id: string): Promise<User | null> {
-    return this.entityManager.findOne(User, { id }, { populate: ['club'] });
+    return this.entityManager.findOne(
+      User,
+      { id },
+      { populate: ['club', 'division'] },
+    );
   }
 
   async update(
@@ -137,6 +142,26 @@ export class UserService {
         user.club = club;
       } else {
         user.club = undefined;
+      }
+    }
+
+    // Handle divisionId separately
+    if ('divisionId' in safeUpdate) {
+      const divisionId = safeUpdate.divisionId as string | undefined;
+      delete (safeUpdate as any).divisionId;
+
+      if (divisionId && divisionId.trim() !== '') {
+        const division = await this.entityManager.findOne(Division, {
+          id: divisionId,
+        });
+        if (!division) {
+          throw new NotFoundException(
+            `Division with id ${divisionId} not found`,
+          );
+        }
+        user.division = division;
+      } else {
+        user.division = undefined;
       }
     }
 
@@ -286,7 +311,10 @@ export class UserService {
     const users = await em.find(
       User,
       {},
-      { orderBy: { firstName: 'ASC', lastName: 'ASC' } },
+      {
+        orderBy: { firstName: 'ASC', lastName: 'ASC' },
+        populate: ['club', 'division'],
+      },
     );
 
     // Get all unique club IDs (filter out undefined)
@@ -321,6 +349,10 @@ export class UserService {
         authProvider: user.authProvider,
         createdAt: user.createdAt,
         categories: user.categories || [],
+        divisionId: user.division?.id ?? null,
+        division: user.division
+          ? { id: user.division.id, name: user.division.name }
+          : null,
         club: club ? { id: club.id, name: club.name } : null,
       };
     });
@@ -367,6 +399,26 @@ export class UserService {
         user.club = club;
       } else {
         user.club = undefined;
+      }
+    }
+
+    // Handle divisionId separately
+    if ('divisionId' in safeUpdate) {
+      const divisionId = safeUpdate.divisionId as string | undefined;
+      delete (safeUpdate as any).divisionId;
+
+      if (divisionId && divisionId.trim() !== '') {
+        const division = await this.entityManager.findOne(Division, {
+          id: divisionId,
+        });
+        if (!division) {
+          throw new NotFoundException(
+            `Division with id ${divisionId} not found`,
+          );
+        }
+        user.division = division;
+      } else {
+        user.division = undefined;
       }
     }
 

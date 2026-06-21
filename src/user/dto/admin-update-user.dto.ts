@@ -48,4 +48,8 @@ export class AdminUpdateUserDto {
   @IsArray()
   @IsOptional()
   categories?: string[];
+
+  @IsString()
+  @IsOptional()
+  divisionId?: string;
 }

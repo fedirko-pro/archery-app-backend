@@ -37,6 +37,7 @@ function serializeUserProfile(user: Record<string, unknown>) {
     gender,
     categories,
     club,
+    division,
     syncTrainingsAndEquipment,
     shareProgressEnabled,
     onboardingCompletedAt,
@@ -61,6 +62,8 @@ function serializeUserProfile(user: Record<string, unknown>) {
     categories: categories ?? [],
     clubId: club?.id ?? null,
     club: club ? { id: club.id, name: club.name } : null,
+    divisionId: division?.id ?? null,
+    division: division ? { id: division.id, name: division.name } : null,
     syncTrainingsAndEquipment: syncTrainingsAndEquipment ?? false,
     shareProgressEnabled: shareProgressEnabled ?? false,
     onboardingCompletedAt: onboardingCompletedAt ?? null,
@@ -188,6 +191,7 @@ export class UserController {
       gender,
       categories,
       club,
+      division,
       createdAt,
       updatedAt,
     } = user as any;
@@ -207,6 +211,8 @@ export class UserController {
       gender,
       categories,
       clubId: club?.id || null,
+      divisionId: division?.id || null,
+      division: division ? { id: division.id, name: division.name } : null,
       createdAt,
       updatedAt,
     };

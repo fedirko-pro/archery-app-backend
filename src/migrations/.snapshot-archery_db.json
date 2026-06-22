@@ -670,22 +670,6 @@
           "enumItems": [],
           "mappedType": "string"
         },
-        "arrow_spine": {
-          "name": "arrow_spine",
-          "type": "varchar(255)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": 255,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        },
         "arrow_weight": {
           "name": "arrow_weight",
           "type": "varchar(255)",
@@ -765,6 +749,22 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "datetime"
+        },
+        "arrow_spine": {
+          "name": "arrow_spine",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 255,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "string"
         }
       },
       "name": "equipment_set",
@@ -2552,22 +2552,6 @@
           "enumItems": [],
           "mappedType": "json"
         },
-        "sync_trainings_and_equipment": {
-          "name": "sync_trainings_and_equipment",
-          "type": "bool",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": "false",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "boolean"
-        },
         "club_id": {
           "name": "club_id",
           "type": "varchar(255)",
@@ -2616,6 +2600,38 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
+        "sync_trainings_and_equipment": {
+          "name": "sync_trainings_and_equipment",
+          "type": "bool",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "true",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "boolean"
+        },
+        "country": {
+          "name": "country",
+          "type": "varchar(2)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 2,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "string"
+        },
         "share_progress_enabled": {
           "name": "share_progress_enabled",
           "type": "bool",
@@ -2648,15 +2664,15 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
-        "country": {
-          "name": "country",
-          "type": "varchar(2)",
+        "division_id": {
+          "name": "division_id",
+          "type": "varchar(255)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
           "unique": false,
-          "length": 2,
+          "length": 255,
           "precision": null,
           "scale": null,
           "default": null,
@@ -2688,6 +2704,19 @@
           "constraintName": "user_club_id_foreign",
           "localTableName": "public.user",
           "referencedTableName": "public.club",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "set null"
+        },
+        "user_division_id_foreign": {
+          "columnNames": [
+            "division_id"
+          ],
+          "constraintName": "user_division_id_foreign",
+          "localTableName": "public.user",
+          "referencedTableName": "public.division",
           "referencedColumnNames": [
             "id"
           ],

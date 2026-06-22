@@ -28,6 +28,10 @@ export class UpdateUserDto {
   @IsOptional()
   location?: string;
 
+  @IsString()
+  @IsOptional()
+  country?: string;
+
   // Allow localhost URLs for development and any valid URL format
   // Only validate URL format if picture is provided and not empty
   @ValidateIf(

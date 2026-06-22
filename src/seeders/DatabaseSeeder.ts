@@ -416,6 +416,7 @@ export class DatabaseSeeder extends Seeder {
           title,
           description: descriptions[i],
           address: locations[i],
+          country: 'PT',
           startDate,
           endDate,
           applicationDeadline,

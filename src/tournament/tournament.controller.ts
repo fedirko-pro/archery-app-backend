@@ -6,6 +6,7 @@ import {
   Put,
   Delete,
   Param,
+  Query,
   UseGuards,
   Request,
   ForbiddenException,
@@ -36,8 +37,16 @@ export class TournamentController {
   }
 
   @Get()
-  async findAll() {
-    const tournaments = await this.tournamentService.findAll();
+  async findAll(
+    @Query('country') country?: string,
+    @Query('upcoming') upcoming?: string,
+  ) {
+    const upcomingFilter =
+      upcoming === 'true' ? true : upcoming === 'false' ? false : undefined;
+    const tournaments = await this.tournamentService.findAll({
+      country: country || undefined,
+      upcoming: upcomingFilter,
+    });
     // Serialize to plain JSON to avoid class-transformer issues with Patrol class
     return tournaments.map((t) => {
       const json: any = wrap(t).toJSON();

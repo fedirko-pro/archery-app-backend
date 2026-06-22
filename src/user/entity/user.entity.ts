@@ -35,6 +35,9 @@ export class User {
   @Property({ nullable: true })
   location?: string;
 
+  @Property({ nullable: true, length: 2 })
+  country?: string;
+
   @Property({ nullable: true })
   appLanguage?: string;
 

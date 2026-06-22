@@ -306,6 +306,7 @@ export class UserService {
         picture: user.picture,
         bio: user.bio,
         location: user.location,
+        country: user.country,
         gender: user.gender,
         nationality: user.nationality,
         federationNumber: user.federationNumber,

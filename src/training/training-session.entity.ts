@@ -16,6 +16,21 @@ export class TrainingSession {
   @Property({ nullable: true })
   shotsCount?: number;
 
+  @Property({ nullable: true, default: 'finished' })
+  status?: string;
+
+  @Property({ nullable: true })
+  arrowsPerSet?: number;
+
+  @Property({ nullable: true })
+  scoreTotal?: number;
+
+  @Property({ nullable: true })
+  notes?: string;
+
+  @Property({ nullable: true })
+  mood?: string;
+
   @Property({ nullable: true })
   distance?: string;
 

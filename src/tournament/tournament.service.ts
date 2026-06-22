@@ -6,7 +6,8 @@ import {
 import { EntityManager } from '@mikro-orm/core';
 import { Tournament } from './tournament.entity';
 import { Rule } from '../rule/rule.entity';
-import { subDays, parseISO } from 'date-fns';
+import { subDays, parseISO, startOfDay } from 'date-fns';
+import type { FilterQuery } from '@mikro-orm/core';
 import { UploadService } from '../upload/upload.service';
 
 @Injectable()
@@ -74,15 +75,35 @@ export class TournamentService {
     return tournament;
   }
 
-  async findAll(): Promise<Tournament[]> {
-    return this.em.find(
-      Tournament,
-      {},
-      {
-        populate: ['createdBy', 'rule'],
-        orderBy: { startDate: 'ASC' }, // Sort by start date, nearest first
-      },
-    );
+  async findAll(options?: {
+    country?: string;
+    upcoming?: boolean;
+  }): Promise<Tournament[]> {
+    const where: FilterQuery<Tournament> = {};
+
+    if (options?.country) {
+      where.country = options.country;
+    }
+
+    if (options?.upcoming !== undefined) {
+      const today = startOfDay(new Date());
+      if (options.upcoming) {
+        where.$or = [
+          { endDate: { $gte: today } },
+          { endDate: null, startDate: { $gte: today } },
+        ];
+      } else {
+        where.$or = [
+          { endDate: { $lt: today } },
+          { endDate: null, startDate: { $lt: today } },
+        ];
+      }
+    }
+
+    return this.em.find(Tournament, where, {
+      populate: ['createdBy', 'rule'],
+      orderBy: { startDate: 'ASC' },
+    });
   }
 
   async findById(id: string): Promise<Tournament> {

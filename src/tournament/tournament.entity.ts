@@ -17,6 +17,9 @@ export class Tournament {
   @Property({ nullable: true })
   address?: string;
 
+  @Property({ nullable: true, length: 2 })
+  country?: string;
+
   @Property({ nullable: true, type: 'json' })
   locationCoords?: { lat: number; lng: number };
 

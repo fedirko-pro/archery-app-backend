@@ -6,6 +6,7 @@ import {
   IsNumber,
   ValidateNested,
   Min,
+  IsIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -25,8 +26,32 @@ export class CreateTrainingSessionDto {
 
   @IsNumber()
   @IsOptional()
-  @Min(1)
+  @Min(0)
   shotsCount?: number;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['started', 'finished'])
+  status?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  arrowsPerSet?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  scoreTotal?: number;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['bad', 'normal', 'good', 'amazing'])
+  mood?: string;
 
   @IsString()
   @IsOptional()

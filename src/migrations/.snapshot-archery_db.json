@@ -670,6 +670,22 @@
           "enumItems": [],
           "mappedType": "string"
         },
+        "arrow_spine": {
+          "name": "arrow_spine",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 255,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "string"
+        },
         "arrow_weight": {
           "name": "arrow_weight",
           "type": "varchar(255)",
@@ -749,22 +765,6 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "datetime"
-        },
-        "arrow_spine": {
-          "name": "arrow_spine",
-          "type": "varchar(255)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": 255,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
         }
       },
       "name": "equipment_set",
@@ -2552,6 +2552,22 @@
           "enumItems": [],
           "mappedType": "json"
         },
+        "sync_trainings_and_equipment": {
+          "name": "sync_trainings_and_equipment",
+          "type": "bool",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "false",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "boolean"
+        },
         "club_id": {
           "name": "club_id",
           "type": "varchar(255)",
@@ -2600,13 +2616,13 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
-        "sync_trainings_and_equipment": {
-          "name": "sync_trainings_and_equipment",
+        "share_progress_enabled": {
+          "name": "share_progress_enabled",
           "type": "bool",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": true,
+          "nullable": false,
           "unique": false,
           "length": null,
           "precision": null,
@@ -2615,6 +2631,22 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "boolean"
+        },
+        "onboarding_completed_at": {
+          "name": "onboarding_completed_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
         },
         "country": {
           "name": "country",

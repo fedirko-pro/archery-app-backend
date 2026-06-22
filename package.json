@@ -21,6 +21,7 @@
     "mikro-orm": "mikro-orm",
     "migration:clear": "rm -f src/migrations/Migration*.ts src/migrations/.snapshot*.json dist/src/migrations/Migration*.js dist/src/migrations/Migration*.js.map dist/src/migrations/Migration*.d.ts dist/src/migrations/.snapshot*.json",
     "migration:clear-db-history": "docker-compose exec db sh -c 'psql -U archery_user -d archery_db -c \"TRUNCATE TABLE mikro_orm_migrations;\"'",
+    "migration:baseline-feb2026": "docker compose exec -T db psql -U archery_user -d archery_db -c \"INSERT INTO mikro_orm_migrations (name, executed_at) SELECT v.name, NOW() FROM (VALUES ('Migration20260217144407'), ('Migration20260223154857'), ('Migration20260223170403')) AS v(name) WHERE NOT EXISTS (SELECT 1 FROM mikro_orm_migrations m WHERE m.name = v.name);\"",
     "migration:initial": "mikro-orm migration:create --initial",
     "generate-pdf-icons": "ts-node scripts/generate-pdf-icons.ts",
     "prepare": "husky"

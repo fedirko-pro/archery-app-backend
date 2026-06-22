@@ -2,6 +2,7 @@ import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
 import { v4 as uuid } from 'uuid';
 import { AuthProvider, AuthProviders } from '../types';
 import { Club } from '../../club/club.entity';
+import { Division } from '../../division/division.entity';
 
 @Entity()
 export class User {
@@ -59,11 +60,20 @@ export class User {
   @Property({ type: 'json', nullable: true })
   categories?: string[]; // User's preferred bow categories (e.g., ['RC', 'CP'])
 
+  @Property({ default: true, nullable: true })
+  syncTrainingsAndEquipment?: boolean = true;
+
   @Property({ default: false, nullable: true })
-  syncTrainingsAndEquipment?: boolean = false;
+  shareProgressEnabled?: boolean = false;
+
+  @Property({ nullable: true })
+  onboardingCompletedAt?: Date;
 
   @ManyToOne(() => Club, { nullable: true })
   club?: Club;
+
+  @ManyToOne(() => Division, { nullable: true })
+  division?: Division;
 
   // @OneToMany(() => Tournament, (tournament) => tournament.createdBy)
   // tournaments = [];

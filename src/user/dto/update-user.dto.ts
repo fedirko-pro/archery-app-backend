@@ -5,6 +5,7 @@ import {
   IsArray,
   IsEmail,
   IsBoolean,
+  IsDateString,
   ValidateIf,
 } from 'class-validator';
 
@@ -64,6 +65,10 @@ export class UpdateUserDto {
 
   @IsString()
   @IsOptional()
+  divisionId?: string;
+
+  @IsString()
+  @IsOptional()
   nationality?: string;
 
   @IsString()
@@ -73,6 +78,14 @@ export class UpdateUserDto {
   @IsBoolean()
   @IsOptional()
   syncTrainingsAndEquipment?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  shareProgressEnabled?: boolean;
+
+  @IsDateString()
+  @IsOptional()
+  onboardingCompletedAt?: string;
 }
 
 export class AdminUpdateUserDto extends UpdateUserDto {

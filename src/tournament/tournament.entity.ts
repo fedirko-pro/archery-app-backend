@@ -35,6 +35,9 @@ export class Tournament {
   @Property({ default: true })
   allowMultipleApplications: boolean = true;
 
+  @Property({ default: false })
+  collectFeedback: boolean = false;
+
   @Property({ default: 18 })
   targetCount: number = 18; // Number of targets/patrols
 

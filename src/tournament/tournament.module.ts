@@ -4,7 +4,10 @@ import { Tournament } from './tournament.entity';
 import { Patrol } from './patrol.entity';
 import { PatrolMember } from './patrol-member.entity';
 import { TournamentApplication } from './tournament-application.entity';
+import { TournamentFeedback } from './tournament-feedback.entity';
 import { TournamentService } from './tournament.service';
+import { TournamentFeedbackService } from './tournament-feedback.service';
+import { TournamentFeedbackController } from './tournament-feedback.controller';
 import { TournamentController } from './tournament.controller';
 import { PatrolService } from './patrol.service';
 import { PatrolController } from './patrol.controller';
@@ -23,6 +26,7 @@ import { RolePermissionsModule } from '../auth/role-permissions.module';
       Patrol,
       PatrolMember,
       TournamentApplication,
+      TournamentFeedback,
     ]),
     UploadModule,
     EmailModule,
@@ -34,11 +38,13 @@ import { RolePermissionsModule } from '../auth/role-permissions.module';
     PatrolGenerationService,
     PatrolPdfService,
     TournamentApplicationService,
+    TournamentFeedbackService,
   ],
   controllers: [
     TournamentController,
     PatrolController,
     TournamentApplicationController,
+    TournamentFeedbackController,
   ],
   exports: [MikroOrmModule],
 })

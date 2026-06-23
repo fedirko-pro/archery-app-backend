@@ -421,6 +421,7 @@ export class DatabaseSeeder extends Seeder {
           endDate,
           applicationDeadline,
           allowMultipleApplications: i % 3 !== 0,
+          collectFeedback: false,
           targetCount: 12 + (i % 3) * 6,
           banner: bannerImages[i],
           createdBy: admin,

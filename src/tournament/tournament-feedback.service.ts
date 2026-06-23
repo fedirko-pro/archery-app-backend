@@ -61,21 +61,74 @@ export class TournamentFeedbackService {
       { orderBy: { endDate: 'DESC', startDate: 'DESC' } },
     );
 
+    const openTournaments = tournaments.filter((tournament) =>
+      this.isFeedbackWindowOpen(tournament),
+    );
+    if (openTournaments.length === 0) {
+      return [];
+    }
+
+    const tournamentIds = openTournaments.map((tournament) => tournament.id);
+
+    const existingFeedback = await this.em.find(TournamentFeedback, {
+      tournament: { $in: tournamentIds },
+      user: userId,
+    });
+    const submittedTournamentIds = new Set(
+      existingFeedback.map((feedback) => feedback.tournament.id),
+    );
+
+    const patrols = await this.em.find(
+      Patrol,
+      { tournament: { $in: tournamentIds } },
+      { populate: ['tournament'] },
+    );
+    const tournamentsWithPatrols = new Set(
+      patrols.map((patrol) => patrol.tournament.id),
+    );
+
+    const patrolIds = patrols.map((patrol) => patrol.id);
+    const patrolIdToTournamentId = new Map(
+      patrols.map((patrol) => [patrol.id, patrol.tournament.id]),
+    );
+    const patrolMemberships =
+      patrolIds.length > 0
+        ? await this.em.find(PatrolMember, {
+            patrol: { $in: patrolIds },
+            user: userId,
+          })
+        : [];
+    const eligibleViaPatrol = new Set(
+      patrolMemberships
+        .map((member) => patrolIdToTournamentId.get(member.patrol.id))
+        .filter(
+          (tournamentId): tournamentId is string => tournamentId !== undefined,
+        ),
+    );
+
+    const approvedApplications = await this.em.find(TournamentApplication, {
+      tournament: { $in: tournamentIds },
+      applicant: userId,
+      status: ApplicationStatus.APPROVED,
+    });
+    const eligibleViaApplication = new Set(
+      approvedApplications.map((application) => application.tournament.id),
+    );
+
     const pending: Tournament[] = [];
 
-    for (const tournament of tournaments) {
-      if (!this.isFeedbackWindowOpen(tournament)) continue;
+    for (const tournament of openTournaments) {
+      if (submittedTournamentIds.has(tournament.id)) {
+        continue;
+      }
 
-      const eligible = await this.isEligibleParticipant(tournament.id, userId);
-      if (!eligible) continue;
+      const eligible = tournamentsWithPatrols.has(tournament.id)
+        ? eligibleViaPatrol.has(tournament.id)
+        : eligibleViaApplication.has(tournament.id);
 
-      const existing = await this.em.findOne(TournamentFeedback, {
-        tournament: tournament.id,
-        user: userId,
-      });
-      if (existing) continue;
-
-      pending.push(tournament);
+      if (eligible) {
+        pending.push(tournament);
+      }
     }
 
     return pending;
@@ -135,7 +188,7 @@ export class TournamentFeedbackService {
       rating,
       comment: comment?.trim() || undefined,
       createdAt: new Date(),
-    } as any);
+    });
 
     await this.em.persistAndFlush(feedback);
     return feedback;

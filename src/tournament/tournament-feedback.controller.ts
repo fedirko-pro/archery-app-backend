@@ -11,6 +11,7 @@ import {
 import { wrap } from '@mikro-orm/core';
 import { TournamentFeedbackService } from './tournament-feedback.service';
 import { TournamentService } from './tournament.service';
+import { SubmitTournamentFeedbackDto } from './dto/submit-tournament-feedback.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsService } from '../auth/permissions.service';
 
@@ -39,7 +40,7 @@ export class TournamentFeedbackController {
   @UseGuards(JwtAuthGuard)
   @Post()
   async submit(
-    @Body() data: { tournamentId: string; rating: number; comment?: string },
+    @Body() data: SubmitTournamentFeedbackDto,
     @Request() req: { user: { sub: string } },
   ) {
     const feedback = await this.feedbackService.submitFeedback(
@@ -72,7 +73,7 @@ export class TournamentFeedbackController {
     const tournament = await this.tournamentService.findById(tournamentId);
 
     if (
-      !this.permissionsService.canViewTournamentApplications(req.user, {
+      !this.permissionsService.canUpdateTournament(req.user, {
         createdBy: { id: tournament.createdBy.id },
       })
     ) {

@@ -53,7 +53,6 @@ export class DatabaseSeeder extends Seeder {
         lastName: 'User',
         role: 'general_admin',
         authProvider: 'local',
-        picture: 'https://i.pravatar.cc/512?img=33',
         appLanguage: 'en',
         nationality: 'Portuguesa',
         gender: 'M',
@@ -326,7 +325,6 @@ export class DatabaseSeeder extends Seeder {
           lastName,
           role: 'user',
           authProvider: 'local',
-          picture: `https://i.pravatar.cc/512?img=${(i % 70) + 1}`,
           appLanguage: i % 2 === 0 ? 'pt' : 'en',
           nationality,
           gender,
@@ -371,18 +369,6 @@ export class DatabaseSeeder extends Seeder {
       'Sintra Nature Reserve',
       'Cascais Coastal Center',
     ];
-    const bannerImages = [
-      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=1200&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1511576661531-b34d7da5d0bb?w=1200&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1200&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=1200&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=1200&h=400&fit=crop',
-    ];
     const descriptions = [
       'Join us for the most prestigious archery event of the year. Open to all categories and skill levels.',
       'Experience outdoor archery at its finest. Beautiful weather and challenging targets await.',
@@ -423,7 +409,6 @@ export class DatabaseSeeder extends Seeder {
           allowMultipleApplications: i % 3 !== 0,
           collectFeedback: false,
           targetCount: 12 + (i % 3) * 6,
-          banner: bannerImages[i],
           createdBy: admin,
           rule,
         });

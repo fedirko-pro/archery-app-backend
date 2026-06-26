@@ -2814,22 +2814,6 @@
           "enumItems": [],
           "mappedType": "string"
         },
-        "share_progress_enabled": {
-          "name": "share_progress_enabled",
-          "type": "bool",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": "false",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "boolean"
-        },
         "onboarding_completed_at": {
           "name": "onboarding_completed_at",
           "type": "timestamptz(6)",
@@ -2861,6 +2845,22 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "string"
+        },
+        "profile_visibility": {
+          "name": "profile_visibility",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'personal'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
         }
       },
       "name": "user",

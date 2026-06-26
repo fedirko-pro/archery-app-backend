@@ -18,7 +18,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { Roles as UserRoles } from './types';
+import { Roles as UserRoles, ProfileVisibilities } from './types';
 import { PermissionsService } from '../auth/permissions.service';
 
 function serializeUserProfile(user: Record<string, unknown>) {
@@ -40,7 +40,7 @@ function serializeUserProfile(user: Record<string, unknown>) {
     club,
     division,
     syncTrainingsAndEquipment,
-    shareProgressEnabled,
+    profileVisibility,
     onboardingCompletedAt,
     createdAt,
     updatedAt,
@@ -67,7 +67,7 @@ function serializeUserProfile(user: Record<string, unknown>) {
     divisionId: division?.id ?? null,
     division: division ? { id: division.id, name: division.name } : null,
     syncTrainingsAndEquipment: syncTrainingsAndEquipment ?? false,
-    shareProgressEnabled: shareProgressEnabled ?? false,
+    profileVisibility: profileVisibility ?? ProfileVisibilities.Personal,
     onboardingCompletedAt: onboardingCompletedAt ?? null,
     createdAt,
     updatedAt,

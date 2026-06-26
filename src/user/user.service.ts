@@ -13,7 +13,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 import { UpdateUserDto, AdminUpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { Roles } from './types';
+import { ProfileVisibilities, Roles } from './types';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
 import { UploadService } from '../upload/upload.service';
@@ -51,6 +51,7 @@ export class UserService {
       password: hashedPassword,
       role: userData.role || Roles.User,
       createdAt: new Date(),
+      profileVisibility: ProfileVisibilities.Personal,
     });
 
     await this.entityManager.persistAndFlush(user);
@@ -496,6 +497,7 @@ export class UserService {
       resetPasswordToken: inviteToken,
       resetPasswordExpires: inviteExpires,
       createdAt: new Date(),
+      profileVisibility: ProfileVisibilities.Personal,
     });
 
     await this.entityManager.persistAndFlush(user);

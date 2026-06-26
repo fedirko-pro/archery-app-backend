@@ -50,3 +50,18 @@ export const AuthProviders = {
 } as const;
 
 export type AuthProvider = (typeof AuthProviders)[keyof typeof AuthProviders];
+
+export const ProfileVisibilities = {
+  Personal: 'personal',
+  Limited: 'limited',
+  Public: 'public',
+} as const;
+
+export type ProfileVisibility =
+  (typeof ProfileVisibilities)[keyof typeof ProfileVisibilities];
+
+export const VALID_PROFILE_VISIBILITIES = [
+  ProfileVisibilities.Personal,
+  ProfileVisibilities.Limited,
+  ProfileVisibilities.Public,
+] as const;

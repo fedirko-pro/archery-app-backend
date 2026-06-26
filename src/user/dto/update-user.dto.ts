@@ -6,8 +6,10 @@ import {
   IsEmail,
   IsBoolean,
   IsDateString,
+  IsIn,
   ValidateIf,
 } from 'class-validator';
+import { VALID_PROFILE_VISIBILITIES } from '../types';
 
 export class UpdateUserDto {
   @IsEmail()
@@ -79,9 +81,9 @@ export class UpdateUserDto {
   @IsOptional()
   syncTrainingsAndEquipment?: boolean;
 
-  @IsBoolean()
+  @IsIn([...VALID_PROFILE_VISIBILITIES])
   @IsOptional()
-  shareProgressEnabled?: boolean;
+  profileVisibility?: (typeof VALID_PROFILE_VISIBILITIES)[number];
 
   @IsDateString()
   @IsOptional()

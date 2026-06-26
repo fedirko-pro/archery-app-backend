@@ -1,6 +1,11 @@
 import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
 import { v4 as uuid } from 'uuid';
-import { AuthProvider, AuthProviders } from '../types';
+import {
+  AuthProvider,
+  AuthProviders,
+  ProfileVisibility,
+  ProfileVisibilities,
+} from '../types';
 import { Club } from '../../club/club.entity';
 import { Division } from '../../division/division.entity';
 
@@ -63,8 +68,8 @@ export class User {
   @Property({ default: true, nullable: true })
   syncTrainingsAndEquipment?: boolean = true;
 
-  @Property({ default: false, nullable: true })
-  shareProgressEnabled?: boolean = false;
+  @Property({ default: ProfileVisibilities.Personal })
+  profileVisibility: ProfileVisibility = ProfileVisibilities.Personal;
 
   @Property({ nullable: true })
   onboardingCompletedAt?: Date;
